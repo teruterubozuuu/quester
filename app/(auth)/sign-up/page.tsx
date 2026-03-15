@@ -12,13 +12,13 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import React from "react"
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Login to your account</CardTitle>
+        <CardTitle>Create an account</CardTitle>
         <CardDescription>
-          Enter your email below to login to your account
+          Enter your email and password below to create an account
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -42,15 +42,12 @@ export default function SignInPage() {
       </CardContent>
       <CardFooter className="flex-col gap-3">
         <Button type="submit" className="w-full cursor-pointer text-foreground">
-          Login
-        </Button>
-        <Button variant="outline" className="w-full cursor-pointer">
-          Login with Google
+          Sign up
         </Button>
         <span className="text-center">
-          Don't have an account?{" "}
-          <Link href="/sign-up" className="underline hover:text-primary">
-            Sign up here
+          Already have an account? {""}
+          <Link href="/sign-in" className="underline hover:text-primary">
+            Sign in here
           </Link>
         </span>
       </CardFooter>
