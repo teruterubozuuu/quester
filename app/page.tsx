@@ -5,8 +5,14 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu"
+import { authOptions } from "@/lib/auth"
+import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation";
 
-export default function Page() {
+export default async function Page() {
+  const session = await getServerSession(authOptions);
+  if (session) redirect("/home")
+
   const navLinks = [
     { id: "home", content: "Home", href: "/" },
     { id: "about", content: "About", href: "#about" },
@@ -15,7 +21,6 @@ export default function Page() {
     { id: "sign-in", content: "Sign In", href: "/sign-in" },
   ]
   return (
-    <>
       <NavigationMenu>
         <div className="flex w-screen justify-between border-b p-2">
           <div>
@@ -44,6 +49,5 @@ export default function Page() {
           </div>
         </div>
       </NavigationMenu>
-    </>
   )
 }
