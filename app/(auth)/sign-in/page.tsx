@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Loader2 } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -43,10 +44,7 @@ export default function SignInPage() {
     }
 
   }
-
-  if (loading) return <Loader/>
   
-
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
@@ -78,10 +76,18 @@ export default function SignInPage() {
           <Button
             type="submit"
             className="w-full cursor-pointer text-foreground"
+            disabled={loading}
           >
-            Login
+            {loading 
+            ? <div className="flex gap-2">
+                <Loader2 className="animate-spin"/>
+              Logging in... 
+              </div>
+            : "Login"
+            }
           </Button>
           <Button
+            disabled={loading}
             variant="outline"
             className="w-full cursor-pointer"
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
