@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import NavUser from "./NavUser"
 import userProps from "@/types/userTypes"
-import logo from "public/logo-light.png"
+import logo from "public/logo.png"
 import { Button } from "./ui/button"
 
 interface AppSidebarProps {
@@ -60,7 +60,7 @@ export default function AppSidebar({ data }: AppSidebarProps) {
         <div
           className={`flex items-center gap-2 py-2 ${isCollapsed ? "flex-col justify-center" : ""}`}
         >
-          <div className="flex shrink-0 items-center gap-2 overflow-hidden">
+          <div className="flex shrink-0 items-center gap-3 overflow-hidden">
             {/* Force the logo size */}
             <img
               src={logo.src}
