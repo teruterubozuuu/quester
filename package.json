@@ -9,9 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@pxlkit/core": "^1.4.0",
+    "@pxlkit/gamification": "^1.2.5",
+    "@pxlkit/ui": "^1.2.6",
+    "@pxlkit/ui-kit": "^2.2.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "next": "16.4.2",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
