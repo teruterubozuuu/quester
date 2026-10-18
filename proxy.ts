@@ -22,7 +22,9 @@ export async function proxy(req: NextRequest) {
             req.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
-            request,
+            request:  {
+              headers: req.headers,
+            },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
