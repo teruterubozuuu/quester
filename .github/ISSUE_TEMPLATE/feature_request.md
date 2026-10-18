@@ -1,9 +1,10 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: ''
-labels: ''
-assignees: ''
+title: "[FEAT]"
+labels: enhancement
+assignees: teruterubozuuu
+type: Feature
 
 ---
 
