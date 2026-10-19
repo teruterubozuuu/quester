@@ -2,6 +2,6 @@ import React from 'react'
 
 export default function AvatarCreation() {
   return (
-    <div>AvatarCreation</div>
+    <div><h1 className='font-pixel text-lg'>Avatar</h1></div>
   )
 }

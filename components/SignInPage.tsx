@@ -49,13 +49,7 @@ export default function SignInPage() {
 
       setIsLoading(false);
       toast.success("Sign in success");
-      const isNewAccount = data.user.created_at === data.user.last_sign_in_at;
-
-      if (isNewAccount) {
-        router.push("/avatar-creation");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/quests");
     } catch (error) {
       console.error(error);
       toast.error("Sign in failed");

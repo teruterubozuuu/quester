@@ -5,26 +5,11 @@ import { useRouter } from 'next/navigation';
 import React from 'react'
 
 export default function DashboardPage() {
-    const router = useRouter();
-    const handleSignOut = async() => {
-        try{
-            const { error } = await supabase.auth.signOut();
 
-            if (error) {
-                console.error("Failed to sign out", error);
-            }
-
-            router.push("/sign-in");
-        } catch (error){
-            console.error("Failed to sign out", error);
-        }    
-    };
-    
   return (
-
     <div>
-        DashboardPage
-        <PixelButton tone="red" onClick={handleSignOut} className='cursor-pointer'>Sign Out</PixelButton>
+       <h1 className='font-pixel text-lg'>Dashboard</h1>
+       <h2 className='font-mono text-xs opacity-60'>Track your gaming activity</h2>
     </div>
   )
 }

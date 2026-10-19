@@ -47,5 +47,10 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/avatar-creation/:path*", "/dashboard/:path*"],
+  matcher: [
+    "/avatar/:path*", 
+    "/quests/:path*", 
+    "/notifications/:path*",
+    "/profile/:path*"
+  ],
 };
