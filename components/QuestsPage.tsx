@@ -1,72 +1,33 @@
 "use client";
 import { status } from "@/utils/quests-constants";
 import {
+  cn,
   PixelBadge,
   PixelButton,
   PixelCard,
+  PixelPopover,
   useToast,
 } from "@pxlkit/ui-kit";
 import Image from "next/image";
 import React, { SubmitEvent, useEffect, useState } from "react";
 import AddGameModal from "./AddGameModal";
 import QuestDrawer from "./QuestDrawer";
+import { GameDetails, QuestData, SavedGame } from "@/utils/types/quest-page";
+import { PxlKitIcon } from "@pxlkit/core";
+import { DotsMenu } from "@pxlkit/ui";
+import GameCardPopover from "./GameCardPopover";
 
-
-export type GameDetails = {
-  id: number;
-  name: string;
-  cover: string;
-  game_type: string;
-  genres: string[];
-  platforms: string[];
-  summary: string;
-  total_rating: number;
-  url: string;
-  game_localizations: string[];
-  game_engines: string[];
-  franchise: string;
-  first_release_date: string;
-  dlcs: string[];
-  parent_game: string[];
-  age_ratings: string;
-};
-
-export type SavedGame = {
-  id: string;
-  user_id: string;
-  title: string;
-  cover: string;
-  summary: string | null;
-  release_date: string | null;
-  category: string | null;
-  genre: string[];
-  platforms: string[];
-  total_ratings: number | null;
-  url: string | null;
-  status: string;
-  created_at: string;
-};
-
-export type QuestData ={
-  id: string;
-  game_id: string;
-  title: string;
-  difficulty: string;
-  status: string;
-  exp: number[];
-  created_at: string | number;
-}
 
 type QuestPageProps = {
   gameData: SavedGame[];
   questData: QuestData[];
 };
 
-
 export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
+  const [hoveredGameId, setHoveredGameId] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<GameDetails[]>([]); // For IGDB search results
   const [savedGames, setSavedGames] = useState<SavedGame[]>(gameData); // Saved games
   const [selectedSearchGame, setSelectedSearchGame] =
@@ -74,7 +35,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   const [selectedLibraryGame, setSelectedLibraryGame] =
     useState<SavedGame | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
 
   const fetchIGDBData = async (normalizedQuery: string) => {
     try {
@@ -152,6 +113,51 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
     }
   };
 
+  const handleGameStatusChange = (gameId: string, newStatus: string) => {
+    setSavedGames((currentGames) =>
+      currentGames.map((currentGame) =>
+        currentGame.id === gameId
+          ? { ...currentGame, status: newStatus }
+          : currentGame
+      )
+    );
+
+    setSelectedLibraryGame((currentGame) =>
+      currentGame?.id === gameId
+        ? { ...currentGame, status: newStatus }
+        : currentGame
+    );
+  };
+
+  const handleDeleteGame = async (gameId: string) => {
+    try {
+      const res = await fetch("/api/delete-game", {
+        method: "DELETE",
+        body: JSON.stringify({ gameId: gameId })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete game");
+      }
+
+      // Immediately remove from UI
+      setSavedGames((currentGames) =>
+        currentGames.filter((game) => game.id !== gameId)
+      );
+
+      // If the deleted game was the one open in the drawer, close it
+      if (selectedLibraryGame?.id === null) {
+        setSelectedLibraryGame(null);
+        setOpenDrawer(false);
+      }
+
+      toast.success("Game has been removed from your board")
+    } catch (error) {
+      console.error("Failed to delete game: ", error);
+      toast.error("Failed to delete game")
+    }
+  }
+
   const getGameStatusTone = (gameStatus: string) => {
     if (gameStatus === "backlog") return "cyan";
     if (gameStatus === "playing") return "gold";
@@ -162,15 +168,16 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   };
 
   return (
-    <div>
-      <header className="flex justify-between items-center mb-3">
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex shrink-0 justify-between items-center mb-3">
         <h1 className="font-pixel text-lg">Quests</h1>
         <PixelButton
           tone="red"
           onClick={() => setOpen(true)}
           className="cursor-pointer"
         >
-          Add Game
+          <span className="hidden md:block">+ Add Game</span>
+          <span className="md:hidden font-pixel text-lg">+</span>
         </PixelButton>
       </header>
 
@@ -186,63 +193,83 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
         handleGameSubmit={handleGameSubmit}
       />
 
-      <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-3">
+      <div
+        className="min-h-0 overflow-y-auto scrollbar-none grid xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-3 md:p-2"
+      >
+
         {savedGames.map((game) => {
           const gameQuests = questData.filter(
-    (quest) => quest.game_id === game.id
-  );
-        return (
-          <button
-            key={game.id}
-            type="button"
-            className="cursor-pointer text-start"
-            onClick={() => {
-              setSelectedLibraryGame(game);
-              setOpenDrawer(true);
-            }}
-          >
-            <PixelCard className="hover:scale-102">
-              <div className="flex md:flex-col flex-row gap-3 hover:text-retro-red">
-                <div className="flex items-center flex-col">
-                <img
-                  src={game.cover}
-                  alt={game.title}
-                  className="md:h-80 md:w-80 h-20 w-20 rounded-md object-cover"
-                  loading="eager"
-                />
-                </div>
+            (quest) => quest.game_id === game.id
+          );
+          return (
+            <div
+              key={game.id}
+              role="button"
+              className="cursor-pointer text-start"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedLibraryGame(game);
+                setOpenDrawer(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedLibraryGame(game);
+                  setOpenDrawer(true);
+                }
+              }}
+            >
+              <PixelCard className="hover:border-retro-primary/30">
+                <div className="flex md:flex-col flex-row gap-3 text-retro-text hover:text-retro-primary ">
+                  <img
+                    src={game.cover}
+                    alt={game.title}
+                    className="md:h-80 md:w-full h-20 w-20 rounded-md object-cover"
+                    loading="eager"
+                  />
 
-                <div className="flex h-18 flex-col justify-between w-full ">
-                  <span
-                    title={game.title}
-                    className="block w-50 lg:w-60 font-mono font-bold leading-tight line-clamp-2"
-                  >
-                    {game.title}
-                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <span
+                        title={game.title}
+                        className="block min-w-0 w-full wrap-break-word font-mono font-bold leading-tight line-clamp-1 truncate"
+                      >
+                        {game.title}
+                      </span>
+                      <GameCardPopover gameId={game.id} onDelete={handleDeleteGame} />
+                    </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-sm text-retro-muted">{gameQuests.length} quests</span>
-                    <PixelBadge size="sm" tone={getGameStatusTone(game.status)}>
-                      {game.status.toUpperCase()}
-                    </PixelBadge>
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                      <span className="min-w-0 text-sm text-retro-muted">
+                        {gameQuests.length} {gameQuests.length > 1 ? "quests" : "quest"}
+                      </span>
+
+                      <PixelBadge
+                        size="sm"
+                        tone={getGameStatusTone(game.status)}
+                      >
+                        {game.status.toUpperCase()}
+                      </PixelBadge>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </PixelCard>
-          </button>
-        )})}
+              </PixelCard>
+            </div>
+          )
+        })}
       </div>
 
       <QuestDrawer
         open={openDrawer}
         setOpen={setOpenDrawer}
         game={selectedLibraryGame}
+        onGameStatusChange={handleGameStatusChange}
         quests={
           selectedLibraryGame
-          ? questData.filter(
-            (quest) => quest.game_id === selectedLibraryGame.id
-          )
-          : []
+            ? questData.filter(
+              (quest) => quest.game_id === selectedLibraryGame.id
+            )
+            : []
         }
       />
     </div>

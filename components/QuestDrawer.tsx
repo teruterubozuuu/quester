@@ -1,5 +1,6 @@
 "use client";
 import {
+  cn,
   PixelBadge,
   PixelButton,
   PixelCard,
@@ -9,31 +10,31 @@ import {
   useToast,
 } from "@pxlkit/ui-kit";
 import { Dispatch, SetStateAction, SubmitEvent, useEffect, useState } from "react";
-import { QuestData, SavedGame } from "./QuestsPage";
 import {
   questDifficulties,
   questStatus,
   status,
 } from "@/utils/quests-constants";
 import { QuestSchema } from "@/lib/schemas/quest.schema";
+import { QuestData, SavedGame } from "@/utils/types/quest-page";
 
 type QuestDrawerProps = {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   game: SavedGame | null;
   quests: QuestData[];
+  onGameStatusChange: (gameId: string, status: string) => void;
 };
 
-export default function QuestDrawer({ open, setOpen, game, quests }: QuestDrawerProps) {
+export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusChange }: QuestDrawerProps) {
   const { toast } = useToast();
   const [isAddingQuest, setIsAddingQuest] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedQuests, setSavedQuests] = useState<QuestData[]>(quests);
 
-
   useEffect(() => {
-  setSavedQuests(quests);
-}, [quests]);
+    setSavedQuests(quests);
+  }, [quests]);
 
   const handleQuestSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -84,6 +85,63 @@ export default function QuestDrawer({ open, setOpen, game, quests }: QuestDrawer
     }
   };
 
+  const handleUpdateQuestStatus = async (questId: string, value: string) => {
+    setSavedQuests((currentQuests) =>
+      currentQuests.map((quest) =>
+        quest.id === questId
+          ? { ...quest, status: value }
+          : quest
+      )
+    );
+    try {
+      const res = await fetch("/api/update-quest-status", {
+        method: "PATCH",
+        body: JSON.stringify({ status: value, questId: questId })
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to update quest status");
+        throw new Error("Failed to update quest status");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update quest status")
+    }
+  }
+
+  const handleUpdateGameStatus = async(gameId: string, value: string) => {
+    onGameStatusChange(gameId, value);
+    try {
+      const res = await fetch("/api/update-game-status", {
+        method: "PATCH",
+        body: JSON.stringify({ status: value, gameId: gameId })
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to update game status");
+        throw new Error("Failed to update game status");
+      }
+    } catch (error) {
+      console.error("Failed to update game status: ", error);
+    }
+  }
+
+  const statusColor: Record<string, string> = {
+    todo: "text-retro-muted border border-retro-muted",
+    in_progress: "text-retro-gold border border-retro-gold",
+    completed: "text-retro-green border border-retro-green",
+  };
+
+  const getQuestDifficultyTone = (difficulty: string) => {
+    if (difficulty === "easy") return "green";
+    if (difficulty === "medium") return "gold";
+    if (difficulty === "hard") return "red";
+    if (difficulty === "diabolical") return "purple";
+
+    return undefined;
+  };
+
+
   return (
     <PixelDrawer open={open} onOpenChange={setOpen} title="Quests">
       <PixelDrawer.Header>
@@ -102,6 +160,13 @@ export default function QuestDrawer({ open, setOpen, game, quests }: QuestDrawer
             label="Status"
             options={status}
             defaultValue={game?.status}
+            onChange={(value) => {
+              if (!game) {
+                return;
+              }
+
+              void handleUpdateGameStatus(game.id, value);
+            }}
           />
         </div>
         {isAddingQuest ? (
@@ -166,22 +231,25 @@ export default function QuestDrawer({ open, setOpen, game, quests }: QuestDrawer
 
                 <select
                   value={quest.status}
-                  onChange={(event) => {
-                    // Call your update-status API here
-                    console.log(event.target.value);
+                  onChange={(e) => {
+                    handleUpdateQuestStatus(quest.id, e.target.value);
+
                   }}
-                  className="focus:none! rounded-md border-2 font-mono border-retro-border bg-retro-surface px-1 py-2"
+                  className={cn(
+                    "cursor-pointer focus:none! rounded-md border-2 border-retro-border bg-retro-surface px-1 py-2 font-mono",
+                    statusColor[quest.status] ?? "text-retro-text"
+                  )}
                 >
                   {questStatus.map((option) => (
-                    <option key={option.value} value={option.value} className="border-2 border-retro-border rounded-md">
+                    <option key={option.value} value={option.value} className="border-2 border-retro-border rounded-md text-retro-text">
                       {option.label}
                     </option>
                   ))}
                 </select>
               </label>
               <div className="flex gap-2 my-2">
-                <PixelBadge className="uppercase">{quest.difficulty}</PixelBadge>
-                <PixelBadge className="uppercase">EXP: {quest.exp}</PixelBadge>
+                <PixelBadge className="uppercase" tone={getQuestDifficultyTone(quest.difficulty)}>{quest.difficulty}</PixelBadge>
+                <PixelBadge className="uppercase" tone="cyan"> EXP: {quest.exp}</PixelBadge>
               </div>
               <span>Created at: {formattedDate}</span>
             </PixelCard>

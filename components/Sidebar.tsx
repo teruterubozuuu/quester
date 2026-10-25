@@ -61,7 +61,7 @@ export default function Sidebar() {
     <div>
       <PixelSidebar
         sections={activeSections}
-        className="hidden xl:flex rounded-lg px-2"
+        className="hidden xl:flex px-2 border-y-0! border-l-0!"
         header={
           <div className="flex gap-2 items-center py-2">
             <Image src={logo} alt="Logo" className="w-10 rounded-md" />

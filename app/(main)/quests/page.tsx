@@ -24,7 +24,8 @@ export default async function Quests() {
     .select(
       "id, user_id, title, cover, summary, release_date, category, genre, platforms, total_ratings, url, status, created_at",
     )
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .order("id", {ascending: false});
 
   if (gameError) {
     console.error("Failed to fetch games:", gameError);
@@ -34,7 +35,8 @@ export default async function Quests() {
   const {data: questData, error: questError} = await supabase
   .from("quests")
   .select("*")
-  .eq("user_id", user.id);
+  .eq("user_id", user.id)
+  .order("id", {ascending: false});
 
   if (questError){
     console.error("Failed to fetch quests: ", questError);
