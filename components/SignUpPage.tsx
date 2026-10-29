@@ -13,11 +13,13 @@ import {
 } from "@pxlkit/ui-kit";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SubmitEvent, useState } from "react";
+import { InputEventHandler, SubmitEvent, useEffect, useState } from "react";
 import z from "zod";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("")
   const router = useRouter();
   const { toast } = useToast();
 
@@ -37,15 +39,14 @@ export default function SignUpPage() {
         email: result.email,
         password: result.password,
         options: {
-          data: {
-            username: result.username,
-          },
+          data: { username: result.username },
         },
       });
-
+      
       if (error) {
+        console.error("Sign up failed:" ,error)
         toast.error("Account creation failed");
-        throw new Error("Account creation failed", error);
+        return;
       }
 
       setIsLoading(false);
@@ -53,15 +54,47 @@ export default function SignUpPage() {
       router.push("/sign-in");
     } catch (error) {
       console.error(error);
-      toast.error("Sign up failed");
       if (error instanceof z.ZodError) {
-        toast.error("Validation Failed", error.message);
+        const messages = error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
+        toast.error("Validation Failed", messages.join("\n"));
+      } else {
+        toast.error("Sign up failed");
       }
       setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handlePasswordChange = (passwordValue: string) => {
+    setPassword(passwordValue);
+
+    if (passwordValue.length === 0) {
+      setPasswordError("");
+      return;
+    }
+
+    // Build a fresh list of errors each time
+    const errors: string[] = [];
+
+    if (!/[A-Z]/.test(passwordValue)) {
+      errors.push("Password must contain at least one uppercase letter");
+    }
+
+    if (!/[a-z]/.test(passwordValue)) {
+      errors.push("Password must contain at least one lowercase letter");
+    }
+
+    if (!/[0-9]/.test(passwordValue)) {
+      errors.push("Password must contain at least one number");
+    }
+
+    if (!/[^A-Za-z0-9]/.test(passwordValue)) {
+      errors.push("Password must contain at least one special character");
+    }
+
+    setPasswordError(errors[0] ?? "");
+  }
 
   return (
     <>
@@ -82,12 +115,13 @@ export default function SignUpPage() {
           title="Start your adventure"
           description="Create an account to get started"
         >
-          <form className="space-y-3" onSubmit={handleSignUp}>
+          <form className="space-y-3 min-w-xs" onSubmit={handleSignUp}>
             <PixelInput
               type="email"
               label="Email"
               name="email"
               placeholder="darklord@quester.xyz"
+              required
             />
 
             <PixelInput
@@ -96,25 +130,33 @@ export default function SignUpPage() {
               name="username"
               placeholder="Teruterubozu"
               hint="Your in-game alias"
+              required
             />
 
-            <PixelPasswordInput
-              label="Password"
-              name="password"
-              placeholder="Enter password"
-            />
+            <div className="max-w-xs">
+              <PixelPasswordInput
+                label="Password"
+                name="password"
+                placeholder="Enter password"
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                error={passwordError}
+                required
+                
+              />
+            </div>
+
 
             <PixelButton
               type="submit"
               tone="red"
               className="w-full cursor-pointer"
-              disabled={isLoading}
+              disabled={isLoading || passwordError.length > 0}
             >
-            {isLoading ? (
-             <>
-              <AnimatedPxlKitIcon icon={LoadingSpinner} size={32}/> "Creating account..."
-             </>
-            ): "Sign Up"}
+              {isLoading ? (
+                <>
+                  <AnimatedPxlKitIcon icon={LoadingSpinner} size={32} /> Creating account...
+                </>
+              ) : "Sign Up"}
             </PixelButton>
           </form>
 

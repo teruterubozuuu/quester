@@ -80,7 +80,7 @@ export default function SignInPage() {
           title="Welcome back to Quester"
           description="Sign in to your account"
         >
-          <form className="space-y-3" onSubmit={handleSignIn}>
+          <form className="space-y-3 min-w-xs" onSubmit={handleSignIn}>
             <PixelInput
               type="email"
               label="Email"

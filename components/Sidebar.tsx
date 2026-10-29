@@ -1,15 +1,12 @@
 "use client";
 import { dropdownSections, sections } from "@/utils/sidebar-constants";
-import { PixelButton, PixelDropdown, PixelSidebar } from "@pxlkit/ui-kit";
+import { PixelDropdown, PixelSidebar } from "@pxlkit/ui-kit";
 import logo from "../public/quester-logo.png";
 import Image from "next/image";
 import { supabase } from "@/utils/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
-import { act, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { PxlKitIcon } from "@pxlkit/core";
-import { Pencil } from "@pxlkit/ui";
-import { Sword } from "@pxlkit/gamification";
 
 export default function Sidebar() {
   const router = useRouter();
@@ -64,7 +61,7 @@ export default function Sidebar() {
     <div>
       <PixelSidebar
         sections={activeSections}
-        className="rounded-lg px-2"
+        className="hidden xl:flex px-2 border-y-0! border-l-0!"
         header={
           <div className="flex gap-2 items-center py-2">
             <Image src={logo} alt="Logo" className="w-10 rounded-md" />
