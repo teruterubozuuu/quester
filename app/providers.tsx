@@ -1,6 +1,7 @@
 // app/providers.tsx
 "use client";
 
+import { PopoverProvider } from "@/contexts/PopoverContext";
 import {
   PxlKitSurfaceProvider,
   PxlKitToastProvider,
@@ -9,7 +10,9 @@ import {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PxlKitSurfaceProvider surface="pixel">
-      <PxlKitToastProvider>{children}</PxlKitToastProvider>
+      <PopoverProvider>
+              <PxlKitToastProvider>{children}</PxlKitToastProvider>
+      </PopoverProvider>
     </PxlKitSurfaceProvider>
   );
 }

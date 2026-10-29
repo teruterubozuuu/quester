@@ -38,17 +38,17 @@ export async function POST(req: NextRequest) {
     const body: AddQuestRequest = await req.json();
     const title = body.title.trim();
 
-if (
-  !title ||
-  !body.gameId ||
-  !(body.difficulty in difficultyExp) ||
-  !questStatuses.includes(body.status)
-) {
-  return NextResponse.json(
-    { error: "Invalid quest data" },
-    { status: 400 },
-  );
-}
+    if (
+      !title ||
+      !body.gameId ||
+      !(body.difficulty in difficultyExp) ||
+      !questStatuses.includes(body.status)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid quest data" },
+        { status: 400 },
+      );
+    }
 
     // Confirm that this game belongs to the authenticated user.
     const { data: game, error: gameError } = await supabase
@@ -59,10 +59,7 @@ if (
       .single();
 
     if (gameError || !game) {
-      return NextResponse.json(
-        { error: "Game not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Game not found" }, { status: 404 });
     }
 
     const { data, error } = await supabase
@@ -73,7 +70,7 @@ if (
         title,
         difficulty: body.difficulty,
         exp: difficultyExp[body.difficulty],
-        status:body.status,
+        status: body.status,
       })
       .select()
       .single();

@@ -27,15 +27,18 @@ type AddGameRequest = {
 };
 
 function getCoverUrl(cover?: IGDBGame["cover"]): string | null {
-  if (!cover?.url) {
-    return null;
+ let url: string | null = null;
+
+  if (typeof cover === "string") {
+    url = cover;
+  } else if (cover && typeof cover === "object" && "url" in cover) {
+    url = (cover as { url?: string }).url ?? null;
   }
 
-  const url = cover.url.startsWith("//")
-    ? `https:${cover.url}`
-    : cover.url;
+  if (!url) return null;
 
-  return url.replace("/t_thumb/", "/t_cover_big/");
+  const normalized = url.startsWith("//") ? `https:${url}` : url;
+  return normalized.replace("/t_thumb/", "/t_cover_big/");
 }
 
 export async function POST(req: NextRequest) {
@@ -51,6 +54,29 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Prevent adding duplicate games to the Quest Board
+    const {data: existingGame, error: lookupError}= await supabase
+    .from("games")
+    .select("igdb_id")
+    .eq("user_id", user.id)
+    .eq("igdb_id", game.id)
+    .maybeSingle();;
+
+    if (lookupError) {
+      console.error("Duplicate check failed:", lookupError);
+      return NextResponse.json(
+        { error: "Failed to verify game uniqueness" },
+        { status: 500 }
+      );
+    }
+
+    if(existingGame) {
+        return NextResponse.json(
+    { error: "This game is already on your Quest Board" },
+    { status: 409 }
+  );
     }
 
     // Insert records to database

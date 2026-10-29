@@ -21,7 +21,8 @@ export async function DELETE(req: NextRequest){
         const {error: deleteError} = await supabase
         .from("games")
         .delete()
-        .eq("id", gameId);
+        .eq("id", gameId)
+        .eq("user_id", user.id);
 
         if (deleteError) {
             return NextResponse.json(

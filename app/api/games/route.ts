@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 type GameDetails = {
   id: string;
   name: string;
+  cover: {url: string};
 };
 
 export async function POST(request: NextRequest) {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "text/plain",
       },
-      body: `search "${normalizedQuery.replaceAll('"', '\\"')}"; fields id,name,cover.url,game_type.type,genres.name,platforms.name,summary,total_rating,url,franchise.name,first_release_date; limit 5;`,
+      body: `search "${normalizedQuery.replaceAll('"', '\\"')}"; fields id,name,cover.url,game_type.type,genres.name,platforms.name,summary,total_rating,url,franchise.name,first_release_date; limit 10;`,
     });
 
     if (!response.ok) {
@@ -47,8 +48,15 @@ export async function POST(request: NextRequest) {
     }
 
     const games: GameDetails[] = await response.json();
+    const normalizedGames = games.map((game: GameDetails) => ({
+      ...game,
+      cover: game.cover?.url
+      ? `https:${game.cover.url}`.replace("/t_thumb/", "/t_cover_big/")
+      : "",
+    }
+    ))
 
-    return NextResponse.json(games);
+    return NextResponse.json(normalizedGames);
   } catch (error) {
     console.error("Game search failed:", error);
 

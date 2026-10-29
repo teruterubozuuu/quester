@@ -9,7 +9,7 @@ import {
   PixelSelect,
   useToast,
 } from "@pxlkit/ui-kit";
-import { Dispatch, SetStateAction, SubmitEvent, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, SubmitEvent, useEffect, useRef, useState } from "react";
 import {
   questDifficulties,
   questStatus,
@@ -17,6 +17,7 @@ import {
 } from "@/utils/quests-constants";
 import { QuestSchema } from "@/lib/schemas/quest.schema";
 import { QuestData, SavedGame } from "@/utils/types/quest-page";
+import QuestPopover from "./QuestPopover";
 
 type QuestDrawerProps = {
   open: boolean;
@@ -30,14 +31,26 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   const { toast } = useToast();
   const [isAddingQuest, setIsAddingQuest] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingQuest, SetEditingQuest] = useState<QuestData | undefined>(undefined);
   const [savedQuests, setSavedQuests] = useState<QuestData[]>(quests);
+  const prevGameIdRef = useRef(game?.id);
 
   useEffect(() => {
-    setSavedQuests(quests);
-  }, [quests]);
+    if (prevGameIdRef.current !== game?.id) {
+      setSavedQuests(quests);
+      prevGameIdRef.current = game?.id;
+    }
+  }, [game?.id, quests]);
+
+  const handleQuestEdit = (questId: string) => {
+    const questData = savedQuests.find((quest) => quest.id === questId);
+    SetEditingQuest(questData);
+  }
 
   const handleQuestSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const questAPI = isEditing ? "edit-quest" : "add-quest";
 
     if (!game) {
       toast.error("Select a game before adding a quest");
@@ -58,25 +71,41 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
 
       const result = QuestSchema.parse({ title, status, difficulty });
 
-      const res = await fetch("/api/add-quest", {
-        method: "POST",
+      const res = await fetch(`/api/${questAPI}`, {
+        method: isEditing ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           gameId: game.id,
+          ...(isEditing && { questId: editingQuest?.id }), // Clean way to conditionally include questId
           title: result.title,
           difficulty: result.difficulty,
-          status: result.status
-        })
-      })
+          status: result.status,
+        }),
+      });
 
       if (!res.ok) {
         throw new Error("Failed to add quest");
       }
 
       const newQuest: QuestData = await res.json();
-      setSavedQuests((currentQuests) => [newQuest, ...currentQuests]);
-      setIsSubmitting(false);
+
+      if (isEditing) {
+        // Replace existing quest instead of appending a duplicate
+        setSavedQuests((currentQuests)=> 
+          currentQuests.map((quest) => (quest.id === editingQuest?.id ? {...quest, ...newQuest} : quest))
+        )
+        toast.success("Quest updated successfully");
+      } else {
+        // Append the newly created quest
+        setSavedQuests((currentQuests) => [...currentQuests, newQuest]);
+        toast.success("Quest added successfully");
+      }
+
       setIsAddingQuest(false);
-      toast.success("Quest added successfully");
+      setIsEditing(false);
+      SetEditingQuest(undefined);
     } catch (error) {
       console.error(error);
       toast.error("Failed to add quest");
@@ -108,8 +137,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       toast.error("Failed to update quest status")
     }
   }
-
-  const handleUpdateGameStatus = async(gameId: string, value: string) => {
+  const handleUpdateGameStatus = async (gameId: string, value: string) => {
     onGameStatusChange(gameId, value);
     try {
       const res = await fetch("/api/update-game-status", {
@@ -126,11 +154,29 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
     }
   }
 
-  const statusColor: Record<string, string> = {
-    todo: "text-retro-muted border border-retro-muted",
-    in_progress: "text-retro-gold border border-retro-gold",
-    completed: "text-retro-green border border-retro-green",
-  };
+
+
+  const handleQuestDelete = async (questId: string) => {
+    try {
+      const res = await fetch("/api/delete-quest", {
+        method: "DELETE",
+        body: JSON.stringify({ questId: questId })
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to delete quest");
+        throw new Error("Failed to delete quest");
+      }
+
+      setSavedQuests((currentQuests) =>
+        currentQuests.filter((quests) => quests.id !== questId));
+
+      toast.info("Quest has been deleted");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete quest")
+    }
+  }
 
   const getQuestDifficultyTone = (difficulty: string) => {
     if (difficulty === "easy") return "green";
@@ -143,7 +189,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
 
 
   return (
-    <PixelDrawer open={open} onOpenChange={setOpen} title="Quests">
+    <PixelDrawer open={open} onOpenChange={setOpen} title="Quests" trapFocus={false}>
       <PixelDrawer.Header>
         <span className="font-pixel">{game?.title}</span>
         <button
@@ -157,7 +203,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       <PixelDrawer.Body className="overflow-visible space-y-3">
         <div className="flex justify-between items-center">
           <PixelSelect
-            label="Status"
+            label="Game Status"
             options={status}
             defaultValue={game?.status}
             onChange={(value) => {
@@ -169,37 +215,52 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
             }}
           />
         </div>
-        {isAddingQuest ? (
-          <form
-            onSubmit={handleQuestSubmit}
-            className="mt-4 flex flex-col gap-3"
-          >
-            <PixelInput
-              label="Quest Title"
-              placeholder="Unalive a Lynel"
-              name="quest-title"
-            />
-
-            <PixelSelect
-              label="Status"
-              name="status"
-              options={questStatus}
-              defaultValue="todo"
-            />
-            <PixelSelect
-              label="Difficulty"
-              name="difficulty"
-              options={questDifficulties}
-              defaultValue="easy"
-            />
-            <PixelButton
-              type="submit"
-              tone="red"
-              disabled={!game || isSubmitting}
+        {isAddingQuest || isEditing ? (
+          <div>
+            <header className="flex justify-between items-center text-retro-muted">
+              <span className="font-mono font-bold uppercase">{isEditing ? "Edit Quest" : "Add a quest"}</span>
+              <button
+                className="font-pixel cursor-pointer hover:text-retro-red"
+                onClick={() => {
+                  setIsAddingQuest(false);
+                  setIsEditing(false);
+                }}
+              >
+                X
+              </button>
+            </header>
+            <form
+              onSubmit={handleQuestSubmit}
+              className="mt-2 flex flex-col gap-3"
             >
-              {isSubmitting ? "Adding..." : "Add Quest"}
-            </PixelButton>
-          </form>
+              <PixelInput
+                label="Quest Title"
+                placeholder="Unalive a Lynel"
+                name="quest-title"
+                defaultValue={isEditing ? editingQuest?.title : ""}
+              />
+
+              <PixelSelect
+                label="Quest Status"
+                name="status"
+                options={questStatus}
+                defaultValue={isEditing ? editingQuest?.status : "todo"}
+              />
+              <PixelSelect
+                label="Difficulty"
+                name="difficulty"
+                options={questDifficulties}
+                defaultValue={isEditing ? editingQuest?.difficulty : "easy"}
+              />
+              <PixelButton
+                type="submit"
+                tone="red"
+                disabled={!game || isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Submit"}
+              </PixelButton>
+            </form>
+          </div>
         ) : (
           <PixelButton
             type="button"
@@ -207,7 +268,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
             onClick={() => setIsAddingQuest(true)}
             className="w-full cursor-pointer text-retro-muted!"
           >
-            + Add Quest
+            + Add a Quest
           </PixelButton>
         )}
 
@@ -225,6 +286,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
             >
               <div className="justify-between w-full flex mb-2">
                 <span className="font-mono font-bold text-retro-text text-lg">{quest.title}</span>
+                <QuestPopover questId={quest.id} onDelete={handleQuestDelete} setIsEditing={setIsEditing} onEdit={handleQuestEdit} />
               </div>
               <label className="flex flex-col gap-1">
                 <span className="text-sm text-retro-muted font-mono">Status</span>
@@ -235,10 +297,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
                     handleUpdateQuestStatus(quest.id, e.target.value);
 
                   }}
-                  className={cn(
-                    "cursor-pointer focus:none! rounded-md border-2 border-retro-border bg-retro-surface px-1 py-2 font-mono",
-                    statusColor[quest.status] ?? "text-retro-text"
-                  )}
+                  className="cursor-pointer focus:none! rounded-md border-2 border-retro-border bg-retro-surface px-1 py-2 font-mono text-retro-text"
                 >
                   {questStatus.map((option) => (
                     <option key={option.value} value={option.value} className="border-2 border-retro-border rounded-md text-retro-text">

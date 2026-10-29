@@ -1,21 +1,17 @@
 "use client";
-import { status } from "@/utils/quests-constants";
 import {
-  cn,
+
   PixelBadge,
   PixelButton,
   PixelCard,
-  PixelPopover,
   useToast,
 } from "@pxlkit/ui-kit";
-import Image from "next/image";
-import React, { SubmitEvent, useEffect, useState } from "react";
+import React, { SubmitEvent, useEffect, useMemo, useState } from "react";
 import AddGameModal from "./AddGameModal";
 import QuestDrawer from "./QuestDrawer";
 import { GameDetails, QuestData, SavedGame } from "@/utils/types/quest-page";
-import { PxlKitIcon } from "@pxlkit/core";
-import { DotsMenu } from "@pxlkit/ui";
 import GameCardPopover from "./GameCardPopover";
+import FilterGamesTabs from "./FilterGamesTabs";
 
 
 type QuestPageProps = {
@@ -23,11 +19,11 @@ type QuestPageProps = {
   questData: QuestData[];
 };
 
+
 export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
-  const [hoveredGameId, setHoveredGameId] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<GameDetails[]>([]); // For IGDB search results
   const [savedGames, setSavedGames] = useState<SavedGame[]>(gameData); // Saved games
   const [selectedSearchGame, setSelectedSearchGame] =
@@ -35,9 +31,28 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   const [selectedLibraryGame, setSelectedLibraryGame] =
     useState<SavedGame | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGameStatus, setSelectedGameStatus] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Derive cards that should be displayed
+  const visibleGames = useMemo(() => {
+    const filteredGames =
+      selectedGameStatus === "all"
+        ? savedGames
+        : savedGames.filter((game) => game.status === selectedGameStatus);
+
+    /**
+     * The spread prevents .sort() from mutating the react state 
+     * array directly
+     */
+    return [...filteredGames].sort((a, b) =>
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime()
+    );
+  }, [savedGames, selectedGameStatus])
 
   const fetchIGDBData = async (normalizedQuery: string) => {
+    setIsLoading(true);
     try {
       const res = await fetch("/api/games", {
         method: "POST",
@@ -54,9 +69,13 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
       const data: GameDetails[] = await res.json();
 
       setSearchResults(data);
+      setIsLoading(false);
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch game data");
+      setIsLoading(false);
+    } finally{
+      setIsLoading(false);
     }
   };
 
@@ -97,13 +116,15 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
       });
 
       if (!res.ok) {
+        const body = await res.json().catch(()=> ({}));
+        toast.error(body?.error ?? "Failed to add game data");
         throw new Error("Failed to add game data");
       }
 
       const newGame: SavedGame = await res.json();
       setSavedGames((currentGames) => [newGame, ...currentGames]);
 
-      toast.success(`${selectedSearchGame.name} has been added to your board`);
+      toast.success("Game Added",`${selectedSearchGame.name} has been added to your board`);
       setOpen(false);
       setSearchQuery("");
       setSelectedSearchGame(null);
@@ -151,7 +172,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
         setOpenDrawer(false);
       }
 
-      toast.success("Game has been removed from your board")
+      toast.info("Game has been removed from your board")
     } catch (error) {
       console.error("Failed to delete game: ", error);
       toast.error("Failed to delete game")
@@ -169,7 +190,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 justify-between items-center mb-3">
+      <header className="flex shrink-0 justify-between items-center">
         <h1 className="font-pixel text-lg">Quests</h1>
         <PixelButton
           tone="red"
@@ -191,47 +212,44 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
         game={searchResults}
         setGame={setSearchResults}
         handleGameSubmit={handleGameSubmit}
+        loading={isLoading}
+      />
+
+      <FilterGamesTabs
+        value={selectedGameStatus}
+        onChange={setSelectedGameStatus}
       />
 
       <div
-        className="min-h-0 overflow-y-auto scrollbar-none grid xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-3 md:p-2"
+        className="-mt-4 min-h-0 overflow-y-auto scrollbar-none grid xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-3 "
       >
-
-        {savedGames.map((game) => {
+        {visibleGames.map((game) => {
           const gameQuests = questData.filter(
             (quest) => quest.game_id === game.id
           );
           return (
-            <div
+            <button
               key={game.id}
-              role="button"
+              type="button"
               className="cursor-pointer text-start"
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedLibraryGame(game);
                 setOpenDrawer(true);
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setSelectedLibraryGame(game);
-                  setOpenDrawer(true);
-                }
-              }}
             >
               <PixelCard className="hover:border-retro-primary/30">
-                <div className="flex md:flex-col flex-row gap-3 text-retro-text hover:text-retro-primary ">
+                <div title={game.title} className="flex md:flex-col flex-row gap-3 text-retro-text hover:text-retro-primary ">
                   <img
                     src={game.cover}
                     alt={game.title}
-                    className="md:h-80 md:w-full h-20 w-20 rounded-md object-cover"
+                    className="md:h-full md:w-full h-20 w-20 rounded-md object-cover"
                     loading="eager"
                   />
 
                   <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <span
-                        title={game.title}
                         className="block min-w-0 w-full wrap-break-word font-mono font-bold leading-tight line-clamp-1 truncate"
                       >
                         {game.title}
@@ -241,7 +259,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
 
                     <div className="flex min-w-0 items-center justify-between gap-2">
                       <span className="min-w-0 text-sm text-retro-muted">
-                        {gameQuests.length} {gameQuests.length > 1 ? "quests" : "quest"}
+                        {gameQuests.length} {gameQuests.length > 1 ? "Quests" : "Quest"}
                       </span>
 
                       <PixelBadge
@@ -254,7 +272,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
                   </div>
                 </div>
               </PixelCard>
-            </div>
+            </button>
           )
         })}
       </div>
