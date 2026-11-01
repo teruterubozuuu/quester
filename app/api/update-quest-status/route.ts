@@ -25,7 +25,8 @@ export async function PATCH(req: NextRequest){
         .update({
             status: status
         })
-        .eq("id", questId);
+        .eq("id", questId)
+        .eq("user_id", user.id);
 
         if (questStatusError) {
         return NextResponse.json(

@@ -225,8 +225,8 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
       >
         {visibleGames.map((game) => {
           const gameQuests = questData.filter(
-            (quest) => quest.game_id === game.id
-          );
+            (quest) => quest.game_id === game.id && quest.status !== "completed"
+);
           return (
             <button
               key={game.id}
