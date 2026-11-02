@@ -8,28 +8,35 @@ type QuestCheckProps = {
     onQuestCompletion: (questId: string, status: string) => void;
     questId: string | null;
     status: string | null;
+    questExp: number | null;
 }
 
-export default function QuestCheck({ open, setOpen, questId, status, onQuestCompletion }: QuestCheckProps) {
+export default function QuestCheck({ open, setOpen, questId, status, onQuestCompletion, questExp }: QuestCheckProps) {
     const { toast } = useToast();
     const [pocFile, setPocFile] = useState<File[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
     /**
    * COMPLETE QUEST
    * @param questId 
    * @param status 
    */
-    const handleQuestCompletion = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleQuestCompletion = async (proofProvided: boolean) => {
+        if (!questId || questExp === null) {
+            toast.error("Quest information is missing");
+            return;
+        }
         setIsLoading(true);
         try {
             const formData = new FormData();
             formData.append("questId", questId!);
+            formData.append("exp", String(questExp));
             formData.append("proofProvided", String(pocFile.length > 0));
 
-            if (pocFile[0]) {
+            if (proofProvided && pocFile[0]) {
                 formData.append("file", pocFile[0]);
             }
+
 
             const res = await fetch("/api/complete-quest", {
                 method: "POST",
@@ -41,11 +48,13 @@ export default function QuestCheck({ open, setOpen, questId, status, onQuestComp
                 throw new Error(responseBody.error ?? "Failed to update quest");
             }
 
-
             onQuestCompletion(questId as string, status as string);
             setPocFile([]);
             setOpen(false);
-            toast.success("You completed a Quest!");
+            toast.success(
+                "You completed a Quest!",
+                `You gained ${responseBody.earnedExp} EXP ${proofProvided ? "and +1 QCP": ""}`
+            );
             setIsLoading(false);
         } catch (error) {
             console.error(error);
@@ -56,6 +65,15 @@ export default function QuestCheck({ open, setOpen, questId, status, onQuestComp
         }
     }
 
+    const handleProofSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        void handleQuestCompletion(true);
+    };
+
+    const handleNoProof = () => {
+        void handleQuestCompletion(false);
+    };
+
     return (
         <PixelModal open={open} onClose={() => setOpen(false)} title="! Halt !" description=" Before you can claim your hard-earned XP, a hand bars your path. 
   It’s Quill, the Guild Receptionist, smiling at you mischievously.">
@@ -65,15 +83,15 @@ export default function QuestCheck({ open, setOpen, questId, status, onQuestComp
                     <PixelCard className='w-full'>
                         <div className='flex flex-col gap-3'>
                             <h1 className='font-pixel text-retro-text'>Quill</h1>
-                            <PixelTypewriter 
-                            className='font-mono mb-3 text-retro-text/90'
-                            speed={45}
-                            label="Not so fast, Quester! Rules are rules: Pics or it didn't happen."
+                            <PixelTypewriter
+                                className='font-mono mb-3 text-retro-text/90'
+                                speed={20}
+                                label="Not so fast! Rules are rules: Hand over the proof, before you get your shiny loot."
                             />
                         </div>
                     </PixelCard>
                 </div>
-                <form onSubmit={handleQuestCompletion}>
+                <form onSubmit={handleProofSubmit}>
                     <PixelScrollArea
                         maxHeight={200}
                         aria-label='Uploaded proof of completion files'
@@ -91,7 +109,15 @@ export default function QuestCheck({ open, setOpen, questId, status, onQuestComp
                     </PixelScrollArea>
                     <div className='flex flex-col gap-2 mt-3'>
                         <PixelButton className='w-full cursor-pointer' tone="purple" type='submit' disabled={isLoading}>{isLoading ? "Submititng..." : "Submit"}</PixelButton>
-                        <PixelButton className='w-full cursor-pointer text-xs text-retro-text/80' tone="neutral">Sorry! I don't have any proof. (XP is halved)</PixelButton>
+                        <PixelButton
+                            className="w-full cursor-pointer text-xs text-retro-text/80"
+                            tone="neutral"
+                            type="button"
+                            onClick={handleNoProof}
+                            disabled={isLoading}
+                        >
+                            Sorry! I don't have any proof. (XP is halved)
+                        </PixelButton>
                     </div>
                 </form>
             </div>

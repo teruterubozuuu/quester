@@ -38,6 +38,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   const [openQuestCheckModal, setOpenQuestCheckModal] = useState(false);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [selectedQuestStatus, setSelectedQuestStatus] = useState<string | null>(null);
+  const [selectedQuestExp, setSelectedQuestExp] = useState<number | null>(null);
   const ongoingQuests = savedQuests.filter((quest) => quest.status !== "completed")
   const prevGameIdRef = useRef(game?.id);
 
@@ -134,25 +135,26 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
    * @param value 
    * @returns
    */
-  const handleUpdateQuestStatus = async (questId: string, value: string) => {
-    if (value.toLowerCase() === "completed") {
+  const handleUpdateQuestStatus = async (questId: string, status: string, questExp: number) => {
+    if (status.toLowerCase() === "completed") {
       setOpenQuestCheckModal(true);
       setSelectedQuestId(questId)
-      setSelectedQuestStatus(value);
+      setSelectedQuestStatus(status);
+      setSelectedQuestExp(questExp);
       return; 
     }
 
     setSavedQuests((currentQuests) =>
       currentQuests.map((quest) =>
         quest.id === questId
-          ? { ...quest, status: value }
+          ? { ...quest, status }
           : quest
       )
     );
     try {
       const res = await fetch("/api/update-quest-status", {
         method: "PATCH",
-        body: JSON.stringify({ status: value, questId: questId })
+        body: JSON.stringify({ status, questId: questId })
       });
 
       if (!res.ok) {
@@ -344,7 +346,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
                   <select
                     value={quest.status}
                     onChange={(e) => {
-                      handleUpdateQuestStatus(quest.id, e.target.value);
+                      handleUpdateQuestStatus(quest.id, e.target.value, quest.exp);
 
                     }}
                     className="cursor-pointer focus:none! rounded-md border-2 border-retro-border bg-retro-surface px-1 py-2 font-mono text-retro-text"
@@ -374,6 +376,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
         onQuestCompletion={onQuestCompletion}
         questId={selectedQuestId}
         status={selectedQuestStatus}
+        questExp={selectedQuestExp}
       />
     </>
   );
