@@ -26,9 +26,10 @@ type QuestDrawerProps = {
   game: SavedGame | null;
   quests: QuestData[];
   onGameStatusChange: (gameId: string, status: string) => void;
+  onQuestsChange: Dispatch<SetStateAction<QuestData[]>>;
 };
 
-export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusChange }: QuestDrawerProps) {
+export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusChange, onQuestsChange }: QuestDrawerProps) {
   const { toast } = useToast();
   const [isAddingQuest, setIsAddingQuest] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +42,11 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   const [selectedQuestExp, setSelectedQuestExp] = useState<number | null>(null);
   const ongoingQuests = savedQuests.filter((quest) => quest.status !== "completed")
   const prevGameIdRef = useRef(game?.id);
+
+  const updateQuests: Dispatch<SetStateAction<QuestData[]>> = (update) => {
+    setSavedQuests(update);
+    onQuestsChange(update);
+  };
 
   useEffect(() => {
     if (prevGameIdRef.current !== game?.id) {
@@ -108,13 +114,13 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
 
       if (isEditing) {
         // Replace existing quest instead of appending a duplicate
-        setSavedQuests((currentQuests) =>
+        updateQuests((currentQuests) =>
           currentQuests.map((quest) => (quest.id === editingQuest?.id ? { ...quest, ...newQuest } : quest))
         )
         toast.success("Quest updated successfully");
       } else {
         // Append the newly created quest
-        setSavedQuests((currentQuests) => [...currentQuests, newQuest]);
+        updateQuests((currentQuests) => [...currentQuests, newQuest]);
         toast.success("Quest added successfully");
       }
 
@@ -144,7 +150,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       return; 
     }
 
-    setSavedQuests((currentQuests) =>
+    updateQuests((currentQuests) =>
       currentQuests.map((quest) =>
         quest.id === questId
           ? { ...quest, status }
@@ -205,7 +211,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
         throw new Error("Failed to delete quest");
       }
 
-      setSavedQuests((currentQuests) =>
+      updateQuests((currentQuests) =>
         currentQuests.filter((quests) => quests.id !== questId));
 
       toast.success("Quest has been deleted");
@@ -216,7 +222,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   }
 
   const onQuestCompletion = (questId: string, status: string) => {
-        setSavedQuests((currentQuests) =>
+        updateQuests((currentQuests) =>
       currentQuests.map((quest) =>
         quest.id === questId
           ? { ...quest, status }
