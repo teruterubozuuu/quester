@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
 
     if (countError) {
       return NextResponse.json(
-        { error: "Failed to calculate trust score" },
+        { error: "Failed to calculate credibility score" },
         { status: 500 },
       );
     }

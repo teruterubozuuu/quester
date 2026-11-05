@@ -18,7 +18,7 @@ import {
 import { QuestSchema } from "@/lib/schemas/quest.schema";
 import { QuestData, SavedGame } from "@/utils/types/quest-page";
 import QuestPopover from "./QuestPopover";
-import QuestCheck from "./QuestCheck";
+import CompletionCheck from "./CompletionCheck";
 
 type QuestDrawerProps = {
   open: boolean;
@@ -36,10 +36,14 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   const [isEditing, setIsEditing] = useState(false);
   const [editingQuest, SetEditingQuest] = useState<QuestData | undefined>(undefined);
   const [savedQuests, setSavedQuests] = useState<QuestData[]>(quests);
-  const [openQuestCheckModal, setOpenQuestCheckModal] = useState(false);
+  const [openCompletionCheckModal, setOpenCompletionCheckModal] = useState(false);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [selectedQuestStatus, setSelectedQuestStatus] = useState<string | null>(null);
+   const [selectedGameStatus, setSelectedGameStatus] = useState<string | null>(null);
   const [selectedQuestExp, setSelectedQuestExp] = useState<number | null>(null);
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [gameExp, setGameExp] = useState<number | null>(null);
+  const [mode, setMode] = useState<string | null>(null);
   const ongoingQuests = savedQuests.filter((quest) => quest.status !== "completed")
   const prevGameIdRef = useRef(game?.id);
 
@@ -84,6 +88,12 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       const title = formData.get("quest-title");
       const status = formData.get("status");
       const difficulty = formData.get("difficulty");
+
+      if (status === "completed") {
+        setOpenCompletionCheckModal(true);
+        setMode("quest")
+        return;
+      }
 
       if (!title) {
         toast.error("Please add a Quest Title");
@@ -143,11 +153,11 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
    */
   const handleUpdateQuestStatus = async (questId: string, status: string, questExp: number) => {
     if (status.toLowerCase() === "completed") {
-      setOpenQuestCheckModal(true);
+      setOpenCompletionCheckModal(true);
       setSelectedQuestId(questId)
       setSelectedQuestStatus(status);
       setSelectedQuestExp(questExp);
-      return; 
+      return;
     }
 
     updateQuests((currentQuests) =>
@@ -222,7 +232,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   }
 
   const onQuestCompletion = (questId: string, status: string) => {
-        updateQuests((currentQuests) =>
+    updateQuests((currentQuests) =>
       currentQuests.map((quest) =>
         quest.id === questId
           ? { ...quest, status }
@@ -263,12 +273,18 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
             <PixelSelect
               label="Game Status"
               options={status}
-              defaultValue={game?.status}
+              value={game?.status}
               onChange={(value) => {
-                if (!game) {
+                if (!game || value === "completed") {
+                  if (value === "completed" && game) {
+                    setSelectedGameId(game.id);
+                    setGameExp(250);
+                    setMode("game");
+                    setSelectedQuestStatus("completed");
+                    setOpenCompletionCheckModal(true);
+                  }
                   return;
                 }
-
                 void handleUpdateGameStatus(game.id, value);
               }}
             />
@@ -376,13 +392,17 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
         </PixelDrawer.Body>
       </PixelDrawer>
 
-      <QuestCheck 
-        open={openQuestCheckModal} 
-        setOpen={setOpenQuestCheckModal} 
+      <CompletionCheck
+        open={openCompletionCheckModal}
+        setOpen={setOpenCompletionCheckModal}
         onQuestCompletion={onQuestCompletion}
         questId={selectedQuestId}
-        status={selectedQuestStatus}
+        questStatus={selectedQuestStatus}
+        gameId={selectedGameId}
+        gameStatus={selectedGameStatus}
         questExp={selectedQuestExp}
+        mode={mode}
+        gameExp={gameExp}
       />
     </>
   );

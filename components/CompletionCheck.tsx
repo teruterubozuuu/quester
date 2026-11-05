@@ -7,11 +7,15 @@ type QuestCheckProps = {
     setOpen: Dispatch<SetStateAction<boolean>>;
     onQuestCompletion: (questId: string, status: string) => void;
     questId: string | null;
-    status: string | null;
+    questStatus: string | null;
     questExp: number | null;
+    gameId: string | null;
+    gameStatus: string | null;
+    gameExp: number | null;
+    mode: string | null;
 }
 
-export default function QuestCheck({ open, setOpen, questId, status, onQuestCompletion, questExp }: QuestCheckProps) {
+export default function QuestCheck({ open, setOpen, questId, questStatus, onQuestCompletion, questExp, mode, gameId, gameStatus, gameExp }: QuestCheckProps) {
     const { toast } = useToast();
     const [pocFile, setPocFile] = useState<File[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -22,23 +26,24 @@ export default function QuestCheck({ open, setOpen, questId, status, onQuestComp
    * @param status 
    */
     const handleQuestCompletion = async (proofProvided: boolean) => {
-        if (!questId || questExp === null) {
-            toast.error("Quest information is missing");
+        const completionAPI = mode === "game" ? "/api/complete-game" : "/api/complete-quest";
+        if (mode === "game" ? !gameId || gameExp === null : !questId || questExp === null) {
+            toast.error("Completion information is missing");
             return;
         }
         setIsLoading(true);
         try {
             const formData = new FormData();
-            formData.append("questId", questId!);
-            formData.append("exp", String(questExp));
+
+            formData.append(mode === "game" ? "gameId" : "questId", mode === "game" ? gameId! : questId!);
+            formData.append("exp", mode === "game" ? String(gameExp) : String(questExp));
             formData.append("proofProvided", String(pocFile.length > 0));
 
             if (proofProvided && pocFile[0]) {
                 formData.append("file", pocFile[0]);
             }
 
-
-            const res = await fetch("/api/complete-quest", {
+            const res = await fetch(`${completionAPI}`, {
                 method: "POST",
                 body: formData
             });
@@ -48,12 +53,12 @@ export default function QuestCheck({ open, setOpen, questId, status, onQuestComp
                 throw new Error(responseBody.error ?? "Failed to update quest");
             }
 
-            onQuestCompletion(questId as string, status as string);
+            onQuestCompletion(questId as string, questStatus as string);
             setPocFile([]);
             setOpen(false);
             toast.success(
                 "You completed a Quest!",
-                `You gained ${responseBody.earnedExp} EXP ${proofProvided ? "and +1 QCP": ""}`
+                `You gained ${responseBody.earnedExp} EXP ${proofProvided ? "and +1 QCP" : ""}`
             );
             setIsLoading(false);
         } catch (error) {

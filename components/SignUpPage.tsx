@@ -2,6 +2,7 @@
 import { SignUpSchema } from "@/lib/schemas/user.schema";
 import { supabase } from "@/utils/supabase/client";
 import { AnimatedPxlKitIcon, PxlKitIcon } from "@pxlkit/core";
+import { LoadingCircle } from "@pxlkit/feedback";
 import { HeartPulse } from "@pxlkit/gamification";
 import { ArrowRight, LoadingSpinner } from "@pxlkit/ui";
 import {
@@ -154,7 +155,7 @@ export default function SignUpPage() {
             >
               {isLoading ? (
                 <>
-                  <AnimatedPxlKitIcon icon={LoadingSpinner} size={32} /> Creating account...
+                  <AnimatedPxlKitIcon icon={LoadingCircle} size={32} /> Creating account...
                 </>
               ) : "Sign Up"}
             </PixelButton>
