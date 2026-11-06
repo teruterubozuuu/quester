@@ -25,6 +25,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   const [open, setOpen] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
   const [searchResults, setSearchResults] = useState<GameDetails[]>([]); // For IGDB search results
+  const [savedQuests, setSavedQuests] = useState<QuestData[]>(questData);
   const [savedGames, setSavedGames] = useState<SavedGame[]>(gameData); // Saved games
   const [selectedSearchGame, setSelectedSearchGame] =
     useState<GameDetails | null>(null);
@@ -224,9 +225,9 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
         className="-mt-4 min-h-0 overflow-y-auto scrollbar-none grid xl:grid-cols-6 lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-3 "
       >
         {visibleGames.map((game) => {
-          const gameQuests = questData.filter(
-            (quest) => quest.game_id === game.id
-          );
+          const gameQuests = savedQuests.filter(
+            (quest) => quest.game_id === game.id && quest.status !== "completed"
+);
           return (
             <button
               key={game.id}
@@ -282,9 +283,10 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
         setOpen={setOpenDrawer}
         game={selectedLibraryGame}
         onGameStatusChange={handleGameStatusChange}
+        onQuestsChange={setSavedQuests}
         quests={
           selectedLibraryGame
-            ? questData.filter(
+            ? savedQuests.filter(
               (quest) => quest.game_id === selectedLibraryGame.id
             )
             : []

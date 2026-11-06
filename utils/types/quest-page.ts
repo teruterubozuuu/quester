@@ -39,6 +39,6 @@ export type QuestData = {
   title: string;
   difficulty: string;
   status: string;
-  exp: number[];
+  exp: number;
   created_at: string | number;
 }

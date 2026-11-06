@@ -18,6 +18,7 @@ import {
 import { QuestSchema } from "@/lib/schemas/quest.schema";
 import { QuestData, SavedGame } from "@/utils/types/quest-page";
 import QuestPopover from "./QuestPopover";
+import CompletionCheck from "./CompletionCheck";
 
 type QuestDrawerProps = {
   open: boolean;
@@ -25,16 +26,31 @@ type QuestDrawerProps = {
   game: SavedGame | null;
   quests: QuestData[];
   onGameStatusChange: (gameId: string, status: string) => void;
+  onQuestsChange: Dispatch<SetStateAction<QuestData[]>>;
 };
 
-export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusChange }: QuestDrawerProps) {
+export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusChange, onQuestsChange }: QuestDrawerProps) {
   const { toast } = useToast();
   const [isAddingQuest, setIsAddingQuest] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingQuest, SetEditingQuest] = useState<QuestData | undefined>(undefined);
   const [savedQuests, setSavedQuests] = useState<QuestData[]>(quests);
+  const [openCompletionCheckModal, setOpenCompletionCheckModal] = useState(false);
+  const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
+  const [selectedQuestStatus, setSelectedQuestStatus] = useState<string | null>(null);
+   const [selectedGameStatus, setSelectedGameStatus] = useState<string | null>(null);
+  const [selectedQuestExp, setSelectedQuestExp] = useState<number | null>(null);
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [gameExp, setGameExp] = useState<number | null>(null);
+  const [mode, setMode] = useState<string | null>(null);
+  const ongoingQuests = savedQuests.filter((quest) => quest.status !== "completed")
   const prevGameIdRef = useRef(game?.id);
+
+  const updateQuests: Dispatch<SetStateAction<QuestData[]>> = (update) => {
+    setSavedQuests(update);
+    onQuestsChange(update);
+  };
 
   useEffect(() => {
     if (prevGameIdRef.current !== game?.id) {
@@ -43,11 +59,20 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
     }
   }, [game?.id, quests]);
 
+  /**
+   * SHOW EDIT QUEST STATE
+   * @param questId 
+   */
   const handleQuestEdit = (questId: string) => {
     const questData = savedQuests.find((quest) => quest.id === questId);
     SetEditingQuest(questData);
   }
 
+  /**
+   * ADD QUEST
+   * @param e 
+   * @returns
+   */
   const handleQuestSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const questAPI = isEditing ? "edit-quest" : "add-quest";
@@ -63,6 +88,12 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       const title = formData.get("quest-title");
       const status = formData.get("status");
       const difficulty = formData.get("difficulty");
+
+      if (status === "completed") {
+        setOpenCompletionCheckModal(true);
+        setMode("quest")
+        return;
+      }
 
       if (!title) {
         toast.error("Please add a Quest Title");
@@ -93,13 +124,13 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
 
       if (isEditing) {
         // Replace existing quest instead of appending a duplicate
-        setSavedQuests((currentQuests)=> 
-          currentQuests.map((quest) => (quest.id === editingQuest?.id ? {...quest, ...newQuest} : quest))
+        updateQuests((currentQuests) =>
+          currentQuests.map((quest) => (quest.id === editingQuest?.id ? { ...quest, ...newQuest } : quest))
         )
         toast.success("Quest updated successfully");
       } else {
         // Append the newly created quest
-        setSavedQuests((currentQuests) => [...currentQuests, newQuest]);
+        updateQuests((currentQuests) => [...currentQuests, newQuest]);
         toast.success("Quest added successfully");
       }
 
@@ -114,18 +145,32 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
     }
   };
 
-  const handleUpdateQuestStatus = async (questId: string, value: string) => {
-    setSavedQuests((currentQuests) =>
+  /**
+   * UPDATE QUEST STATUS
+   * @param questId 
+   * @param value 
+   * @returns
+   */
+  const handleUpdateQuestStatus = async (questId: string, status: string, questExp: number) => {
+    if (status.toLowerCase() === "completed") {
+      setOpenCompletionCheckModal(true);
+      setSelectedQuestId(questId)
+      setSelectedQuestStatus(status);
+      setSelectedQuestExp(questExp);
+      return;
+    }
+
+    updateQuests((currentQuests) =>
       currentQuests.map((quest) =>
         quest.id === questId
-          ? { ...quest, status: value }
+          ? { ...quest, status }
           : quest
       )
     );
     try {
       const res = await fetch("/api/update-quest-status", {
         method: "PATCH",
-        body: JSON.stringify({ status: value, questId: questId })
+        body: JSON.stringify({ status, questId: questId })
       });
 
       if (!res.ok) {
@@ -137,6 +182,12 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       toast.error("Failed to update quest status")
     }
   }
+
+  /**
+   * UPDATE GAME STATUS
+   * @param gameId 
+   * @param value 
+   */
   const handleUpdateGameStatus = async (gameId: string, value: string) => {
     onGameStatusChange(gameId, value);
     try {
@@ -154,8 +205,10 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
     }
   }
 
-
-
+  /**
+   * DELETE QUEST
+   * @param questId
+   */
   const handleQuestDelete = async (questId: string) => {
     try {
       const res = await fetch("/api/delete-quest", {
@@ -168,16 +221,31 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
         throw new Error("Failed to delete quest");
       }
 
-      setSavedQuests((currentQuests) =>
+      updateQuests((currentQuests) =>
         currentQuests.filter((quests) => quests.id !== questId));
 
-      toast.info("Quest has been deleted");
+      toast.success("Quest has been deleted");
     } catch (error) {
       console.error(error);
       toast.error("Failed to delete quest")
     }
   }
 
+  const onQuestCompletion = (questId: string, status: string) => {
+    updateQuests((currentQuests) =>
+      currentQuests.map((quest) =>
+        quest.id === questId
+          ? { ...quest, status }
+          : quest
+      )
+    );
+  }
+
+  /**
+   * CUSTOMIZED BADGE TONES PER QUEST DIFFICULTY
+   * @param difficulty 
+   * @returns 
+   */
   const getQuestDifficultyTone = (difficulty: string) => {
     if (difficulty === "easy") return "green";
     if (difficulty === "medium") return "gold";
@@ -187,135 +255,155 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
     return undefined;
   };
 
-
   return (
-    <PixelDrawer open={open} onOpenChange={setOpen} title="Quests" trapFocus={false}>
-      <PixelDrawer.Header>
-        <span className="font-pixel">{game?.title}</span>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="font-pixel cursor-pointer hover:text-retro-red transition-colors"
-        >
-          X
-        </button>
-      </PixelDrawer.Header>
-      <PixelDrawer.Body className="overflow-visible space-y-3">
-        <div className="flex justify-between items-center">
-          <PixelSelect
-            label="Game Status"
-            options={status}
-            defaultValue={game?.status}
-            onChange={(value) => {
-              if (!game) {
-                return;
-              }
-
-              void handleUpdateGameStatus(game.id, value);
-            }}
-          />
-        </div>
-        {isAddingQuest || isEditing ? (
-          <div>
-            <header className="flex justify-between items-center text-retro-muted">
-              <span className="font-mono font-bold uppercase">{isEditing ? "Edit Quest" : "Add a quest"}</span>
-              <button
-                className="font-pixel cursor-pointer hover:text-retro-red"
-                onClick={() => {
-                  setIsAddingQuest(false);
-                  setIsEditing(false);
-                }}
-              >
-                X
-              </button>
-            </header>
-            <form
-              onSubmit={handleQuestSubmit}
-              className="mt-2 flex flex-col gap-3"
-            >
-              <PixelInput
-                label="Quest Title"
-                placeholder="Unalive a Lynel"
-                name="quest-title"
-                defaultValue={isEditing ? editingQuest?.title : ""}
-              />
-
-              <PixelSelect
-                label="Quest Status"
-                name="status"
-                options={questStatus}
-                defaultValue={isEditing ? editingQuest?.status : "todo"}
-              />
-              <PixelSelect
-                label="Difficulty"
-                name="difficulty"
-                options={questDifficulties}
-                defaultValue={isEditing ? editingQuest?.difficulty : "easy"}
-              />
-              <PixelButton
-                type="submit"
-                tone="red"
-                disabled={!game || isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Submit"}
-              </PixelButton>
-            </form>
-          </div>
-        ) : (
-          <PixelButton
+    <>
+      <PixelDrawer open={open} onOpenChange={setOpen} title="Quests" trapFocus={false}>
+        <PixelDrawer.Header className="flex gap-4">
+          <span className="font-pixel text-sm">{game?.title}</span>
+          <button
             type="button"
-            tone="neutral"
-            onClick={() => setIsAddingQuest(true)}
-            className="w-full cursor-pointer text-retro-muted!"
+            onClick={() => setOpen(false)}
+            className="font-pixel cursor-pointer hover:text-retro-red transition-colors"
           >
-            + Add a Quest
-          </PixelButton>
-        )}
-
-        {savedQuests.map((quest) => {
-          const date = new Date(quest.created_at);
-          const formattedDate = date.toLocaleDateString('en-US', {
-            month: "short",
-            day: "2-digit",
-            year: "numeric"
-          });
-          return (
-            <PixelCard
-              key={quest.id}
-              className="overflow-visible"
-            >
-              <div className="justify-between w-full flex mb-2">
-                <span className="font-mono font-bold text-retro-text text-lg">{quest.title}</span>
-                <QuestPopover questId={quest.id} onDelete={handleQuestDelete} setIsEditing={setIsEditing} onEdit={handleQuestEdit} />
-              </div>
-              <label className="flex flex-col gap-1">
-                <span className="text-sm text-retro-muted font-mono">Status</span>
-
-                <select
-                  value={quest.status}
-                  onChange={(e) => {
-                    handleUpdateQuestStatus(quest.id, e.target.value);
-
+            X
+          </button>
+        </PixelDrawer.Header>
+        <PixelDrawer.Body className="overflow-visible space-y-3">
+          <div className="flex justify-between items-center">
+            <PixelSelect
+              label="Game Status"
+              options={status}
+              value={game?.status}
+              onChange={(value) => {
+                if (!game || value === "completed") {
+                  if (value === "completed" && game) {
+                    setSelectedGameId(game.id);
+                    setGameExp(250);
+                    setMode("game");
+                    setSelectedQuestStatus("completed");
+                    setOpenCompletionCheckModal(true);
+                  }
+                  return;
+                }
+                void handleUpdateGameStatus(game.id, value);
+              }}
+            />
+          </div>
+          {isAddingQuest || isEditing ? (
+            <div>
+              <header className="flex justify-between items-center text-retro-muted">
+                <span className="font-mono font-bold uppercase">{isEditing ? "Edit Quest" : "Add a quest"}</span>
+                <button
+                  className="font-pixel cursor-pointer hover:text-retro-red"
+                  onClick={() => {
+                    setIsAddingQuest(false);
+                    setIsEditing(false);
                   }}
-                  className="cursor-pointer focus:none! rounded-md border-2 border-retro-border bg-retro-surface px-1 py-2 font-mono text-retro-text"
                 >
-                  {questStatus.map((option) => (
-                    <option key={option.value} value={option.value} className="border-2 border-retro-border rounded-md text-retro-text">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="flex gap-2 my-2">
-                <PixelBadge className="uppercase" tone={getQuestDifficultyTone(quest.difficulty)}>{quest.difficulty}</PixelBadge>
-                <PixelBadge className="uppercase" tone="cyan"> EXP: {quest.exp}</PixelBadge>
-              </div>
-              <span>Created at: {formattedDate}</span>
-            </PixelCard>
-          )
-        })
-        }
-      </PixelDrawer.Body>
-    </PixelDrawer>
+                  X
+                </button>
+              </header>
+              <form
+                onSubmit={handleQuestSubmit}
+                className="mt-2 flex flex-col gap-3"
+              >
+                <PixelInput
+                  label="Quest Title"
+                  placeholder="Unalive a Lynel"
+                  name="quest-title"
+                  defaultValue={isEditing ? editingQuest?.title : ""}
+                />
+
+                <PixelSelect
+                  label="Quest Status"
+                  name="status"
+                  options={questStatus}
+                  defaultValue={isEditing ? editingQuest?.status : "todo"}
+                />
+                <PixelSelect
+                  label="Difficulty"
+                  name="difficulty"
+                  options={questDifficulties}
+                  defaultValue={isEditing ? editingQuest?.difficulty : "easy"}
+                />
+                <PixelButton
+                  type="submit"
+                  tone="red"
+                  disabled={!game || isSubmitting}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit"}
+                </PixelButton>
+              </form>
+            </div>
+          ) : (
+            <PixelButton
+              type="button"
+              tone="neutral"
+              onClick={() => setIsAddingQuest(true)}
+              className="w-full cursor-pointer text-retro-muted!"
+            >
+              + Add a Quest
+            </PixelButton>
+          )}
+
+          {ongoingQuests.map((quest) => {
+            const date = new Date(quest.created_at);
+            const formattedDate = date.toLocaleDateString('en-US', {
+              month: "short",
+              day: "2-digit",
+              year: "numeric"
+            });
+            return (
+              <PixelCard
+                key={quest.id}
+                className="overflow-visible"
+              >
+                <div className="justify-between w-full flex mb-2">
+                  <span className="font-mono font-bold text-retro-text text-lg">{quest.title}</span>
+                  <QuestPopover questId={quest.id} onDelete={handleQuestDelete} setIsEditing={setIsEditing} onEdit={handleQuestEdit} />
+                </div>
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-retro-muted font-mono">Status</span>
+
+                  <select
+                    value={quest.status}
+                    onChange={(e) => {
+                      handleUpdateQuestStatus(quest.id, e.target.value, quest.exp);
+
+                    }}
+                    className="cursor-pointer focus:none! rounded-md border-2 border-retro-border bg-retro-surface px-1 py-2 font-mono text-retro-text"
+                  >
+                    {questStatus.map((option) => (
+                      <option key={option.value} value={option.value} className="border-2 border-retro-border rounded-md text-retro-text">
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex gap-2 my-2">
+                  <PixelBadge className="uppercase" tone={getQuestDifficultyTone(quest.difficulty)}>{quest.difficulty}</PixelBadge>
+                  <PixelBadge className="uppercase" tone="cyan"> EXP: {quest.exp}</PixelBadge>
+                </div>
+                <span>Created at: {formattedDate}</span>
+              </PixelCard>
+            )
+          })
+          }
+        </PixelDrawer.Body>
+      </PixelDrawer>
+
+      <CompletionCheck
+        open={openCompletionCheckModal}
+        setOpen={setOpenCompletionCheckModal}
+        onQuestCompletion={onQuestCompletion}
+        questId={selectedQuestId}
+        questStatus={selectedQuestStatus}
+        gameId={selectedGameId}
+        gameStatus={selectedGameStatus}
+        questExp={selectedQuestExp}
+        mode={mode}
+        gameExp={gameExp}
+      />
+    </>
   );
 }

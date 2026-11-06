@@ -36,7 +36,7 @@ export default async function Quests() {
   .from("quests")
   .select("*")
   .eq("user_id", user.id)
-  .order("id", {ascending: false});
+  .order("created_at", {ascending: false});
 
   if (questError){
     console.error("Failed to fetch quests: ", questError);

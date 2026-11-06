@@ -77,7 +77,9 @@ export default function Sidebar() {
           <>
             <div className="min-w-0 w-full [&_button]:flex [&_button]:w-full [&_button]:cursor-pointer [&_button]:min-w-0 [&_button]:justify-between [&_button]:border-none [&_button]:bg-transparent [&_button]:px-0 [&_button>span:first-child]:min-w-0 [&_button>span:first-child]:overflow-hidden [&_button>span:first-child]:text-ellipsis [&_button>span:first-child]:whitespace-nowrap">
               <PixelDropdown
-                label={user?.user_metadata.username}
+                label={
+                  user?.user_metadata.username
+                }
                 items={dropdownSections}
                 onSelect={(value) => {
                   switch (value) {
