@@ -1,3 +1,4 @@
+import { computedCredPoints, totalExpComputation } from "@/lib/computations";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -142,13 +143,16 @@ export async function POST(req: NextRequest) {
 
     const earnedExp = proofProvided ? questExp : Math.floor(questExp / 2);
 
-    const totalExp = currentTotalExp + earnedExp;
-    currentExp += earnedExp;
+    const expResult = totalExpComputation({
+      currentExp,
+      currentTotalExp,
+      earnedExp,
+      level
+    });
 
-    while (currentExp >= 100 * level ** 2) {
-      currentExp -= 100 * level ** 2;
-      level += 1;
-    }
+    const totalExp = expResult.totalExp;
+    currentExp = expResult.currentExp;
+    level = expResult.level;
 
     /**
      * Credibility Points computation
@@ -169,10 +173,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const computedCredPoints =
-      completedGameCount && completedGameCount > 0
-        ? Math.round((credibilityPoints / completedGameCount) * 100)
-        : 0;
+    const computedCredibilityPoints = computedCredPoints({
+      completedQuestCount: completedGameCount ?? 0,
+      credibilityPoints
+    });
 
     /**
      * Insert XP Gained, and Credibility Points record into "profiles" table
@@ -211,7 +215,7 @@ export async function POST(req: NextRequest) {
         totalExp,
         currentExp,
         level,
-        computedCredPoints,
+        computedCredibilityPoints,
       },
       { status: 200 },
     );
