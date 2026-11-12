@@ -1,18 +1,14 @@
 import {
-  AnimatedPxlKitIcon,
-  ParallaxPxlKitIcon,
   PxlKitIcon,
 } from "@pxlkit/core";
 import { Bell } from "@pxlkit/feedback";
 import {
   Heart,
-  HeartPulse,
   Scroll,
-  SpellBook,
-  Sword,
 } from "@pxlkit/gamification";
-import { CoolEmoji } from "@pxlkit/parallax";
 import { Community, User } from "@pxlkit/social";
+
+
 
 export const sections = [
   {

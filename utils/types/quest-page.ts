@@ -1,10 +1,20 @@
+export type Platforms = {
+  id: string;
+  name: string;
+}
+
+export type Genres = {
+  id: string;
+  name: string;
+}
+
 export type GameDetails = {
   id: number;
   name: string;
   cover: string;
   game_type: string;
-  genres: string[];
-  platforms: string[];
+  genres: Genres[];
+  platforms: Platforms[];
   summary: string;
   total_rating: number;
   url: string;
@@ -25,8 +35,8 @@ export type SavedGame = {
   summary: string | null;
   release_date: string | null;
   category: string | null;
-  genre: string[];
-  platforms: string[];
+  genre: Genres[];
+  platforms: Platforms[];
   total_ratings: number | null;
   url: string | null;
   status: string;

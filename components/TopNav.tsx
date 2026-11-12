@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function TopNav() {
   return (
-    <div className="fixed inset-x-0 top-0 z-50 h-14 border-b border-retro-muted/30 bg-retro-bg md:hidden">
+    <div className="fixed inset-x-0 top-0 z-50 h-14 border-b border-retro-muted/30 bg-retro-bg xl:hidden">
       <header className="flex gap-2 h-full  items-center px-2">
         <Image src={logo} alt="Logo" className='w-10 rounded-md'/>
         <div className='flex flex-col'>

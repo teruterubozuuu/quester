@@ -17,5 +17,12 @@ export const SignInSchema = z.object({
     password: z.string() .min(6, "Password must be at least 6 characters long")
 });
 
+export const ProfileSchema = z.object({
+    displayName: z.string().min(3, "Display name is too short").max(50, "Display name must be 50 characters or less"),
+    username: z.string().min(3, "Username is too short").max(50, "Username must be 50 characters or less"),
+    bio: z.string().max(160, "Bio must be 160 characters or less")
+})
+
 export type SignUp = z.infer<typeof SignUpSchema>;
 export type SignIn= z.infer<typeof SignInSchema>;
+export type Profile = z.infer<typeof ProfileSchema>;

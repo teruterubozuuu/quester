@@ -36,14 +36,26 @@ export default function Sidebar() {
     fetchUser();
   }, [fetchUser]);
 
+
   const activeSections = sections.map((section) => ({
     ...section,
-    items: section.items.map((item) => ({
-      ...item,
-      active:
-        item.href === pathname ||
-        (item.href !== undefined && pathname.startsWith(`${item.href}/`)),
-    })),
+    items: section.items.map((item) => {
+      // If this is the Profile item and we know the username, make it dynamic
+      if (item.id === "profile" && user?.user_metadata.username) {
+        const myProfileHref = `/profile/${user.user_metadata.username}`;
+        return {
+          ...item,
+          href: myProfileHref,
+          active: pathname === myProfileHref,
+        };
+      }
+      return {
+        ...item,
+        active:
+          item.href === pathname ||
+          (item.href !== undefined && pathname.startsWith(`${item.href}/`)),
+      };
+    }),
   }));
 
   const handleSignOut = async () => {

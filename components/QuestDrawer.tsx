@@ -39,7 +39,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   const [openCompletionCheckModal, setOpenCompletionCheckModal] = useState(false);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [selectedQuestStatus, setSelectedQuestStatus] = useState<string | null>(null);
-   const [selectedGameStatus, setSelectedGameStatus] = useState<string | null>(null);
+  const [selectedGameStatus, setSelectedGameStatus] = useState<string | null>(null);
   const [selectedQuestExp, setSelectedQuestExp] = useState<number | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [gameExp, setGameExp] = useState<number | null>(null);
@@ -90,8 +90,30 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       const difficulty = formData.get("difficulty");
 
       if (status === "completed") {
+        const result = QuestSchema.parse({ title, status, difficulty });
+
+        const res = await fetch("/api/add-quest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameId: game.id,
+            title: result.title,
+            difficulty: result.difficulty,
+            status: result.status,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to add quest");
+        }
+
+        const newQuest: QuestData = await res.json();
+
+        setSelectedQuestId(newQuest.id);
+        setSelectedQuestStatus("completed");
+        setSelectedQuestExp(newQuest.exp ?? 0);
+        setMode("quest");
         setOpenCompletionCheckModal(true);
-        setMode("quest")
         return;
       }
 
@@ -346,7 +368,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
             </PixelButton>
           )}
 
-          {ongoingQuests.map((quest) => {
+          {savedQuests.map((quest) => {
             const date = new Date(quest.created_at);
             const formattedDate = date.toLocaleDateString('en-US', {
               month: "short",
