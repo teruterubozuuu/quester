@@ -6,7 +6,7 @@ import React from 'react'
 export default function loading() {
   return (
     <div className='flex justify-center items-center h-svh'>
-       <p className='font-pixel'> <AnimatedPxlKitIcon icon={LoadingCircle}/> Loading...</p>
+       <AnimatedPxlKitIcon icon={LoadingCircle}/> {" " }<p> Loading...</p>
     </div>
   )
 }

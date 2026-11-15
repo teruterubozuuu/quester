@@ -1,3 +1,4 @@
+"use client";
 import { FavoriteGame } from '@/utils/types/profile-page';
 import { GameDetails } from '@/utils/types/quest-page';
 import { AnimatedPxlKitIcon } from '@pxlkit/core';

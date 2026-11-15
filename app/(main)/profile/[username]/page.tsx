@@ -1,3 +1,4 @@
+
 import ProfileActivities from "@/components/ProfileActivities";
 import ProfileFavoriteGame from "@/components/ProfileFavoriteGame";
 import ProfileHeader from "@/components/ProfileHeader";

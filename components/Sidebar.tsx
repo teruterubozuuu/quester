@@ -13,28 +13,28 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
 
-  const fetchUser = async () => {
-    try {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-      if (error) {
-        console.error("Supabase API error:", error);
+        if (error) {
+          console.error("Supabase API error:", error);
+          return null;
+        }
+
+        setUser(user);
+      } catch (error) {
+        console.error(error);
         return null;
       }
+    };
 
-      setUser(user);
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  };
-
-  useEffect(() => {
     fetchUser();
-  }, [fetchUser]);
+  }, []);
 
 
   const activeSections = sections.map((section) => ({

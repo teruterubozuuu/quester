@@ -1,6 +1,6 @@
 "use client";
 import { PixelPopover } from '@pxlkit/ui-kit'
-import { Ellipsis, Trash } from 'lucide-react';
+import { Ellipsis, EllipsisVertical, Trash } from 'lucide-react';
 import React from 'react'
 import { usePopover } from '@/contexts/PopoverContext';
 
@@ -38,7 +38,7 @@ export default function GameCardPopover({ gameId, onDelete }: GameCardPopoverPro
                         }
                     }}
                 >
-                    <Ellipsis size={15} className='text-retro-muted' />
+                    <EllipsisVertical size={15} className='text-retro-muted' />
                 </div>
             </PixelPopover.Trigger>
 
