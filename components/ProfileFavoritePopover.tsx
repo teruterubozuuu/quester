@@ -1,3 +1,4 @@
+"use client";
 import { usePopover } from '@/contexts/PopoverContext';
 import { PixelPopover } from '@pxlkit/ui-kit';
 import { EllipsisVertical, Pencil, Trash, X } from 'lucide-react';
