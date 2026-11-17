@@ -2,15 +2,14 @@
 import { PxlKitIcon } from '@pxlkit/core'
 import { Star } from '@pxlkit/gamification'
 import { PixelButton, PixelCard, useToast } from '@pxlkit/ui-kit'
-import React, { SubmitEvent, useEffect, useState } from 'react'
+import { SubmitEvent, useEffect, useState } from 'react'
 import AddFavoriteGameModal from './AddFavoriteGameModal';
 import { GameDetails } from '@/utils/types/quest-page';
 import { FavoriteGame } from '@/utils/types/profile-page';
-import { Pencil } from '@pxlkit/ui';
-import { Ellipsis, EllipsisVertical, PencilIcon } from 'lucide-react';
-import FavoriteGameDropdown from './FavoriteGameDropdown';
+import ProfileFavoritePopover from './ProfileFavoritePopover';
 
-type ProfileFavoriteGameProps = {
+
+export type ProfileFavoriteGameProps = {
   isOwnProfile: boolean;
   savedFavoriteGame: FavoriteGame | null;
 }
@@ -25,6 +24,10 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  /**
+   * Fetches Game Data from IGDB
+   * @param normalizedQuery 
+   */
   const fetchIGDB = async (normalizedQuery: string) => {
     setIsLoading(true);
     try {
@@ -68,6 +71,10 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
+  /**
+   * Function for handling submitted forms
+   * @param e 
+   */
   const handleSubmitFavoriteGame = async (e: SubmitEvent<HTMLFormElement>) => {
     try {
       const formData = new FormData(e.currentTarget);
@@ -92,11 +99,40 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
     }
   }
 
+  useEffect(() => {
+  setFavoriteGame(savedFavoriteGame);
+}, [savedFavoriteGame]);
+  
+  const handleFavoriteEdit = async()=>{
+    try{
+
+    } catch(error){
+      console.error(error);
+    }
+  }
+
+  const handleRemove = async(favoriteId: string)=>{
+    try{
+      const res = await fetch("/api/delete-favorite-game", {
+        method: "DELETE",
+        body: JSON.stringify({favoriteId})
+      });
+
+      if (!res.ok){
+        throw new Error("Failed to remove game as favorite")
+      }
+
+      setFavoriteGame(null);
+    } catch(error){
+      console.error("Failed to remove game as favorite: ", error);
+    }
+  }
+
   return (
     <PixelCard title='Favorite Game' icon={<PxlKitIcon icon={Star} size={20} />}>
       {favoriteGame
         ? (
-          <div className='flex flex-col items-center'>
+          <div className='flex flex-col items-cente justify-between'>
             <img
               src={favoriteGame.cover}
               alt="Favorite Game"
@@ -105,14 +141,9 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
             <div className='mt-3'>
               <div className='flex justify-between items-center'>
                 <span className='font-mono text-retro-red'>{favoriteGame.title}</span>
-                <button  
-                  className='cursor-pointer p-1 bg-retro-card/80 border border-retro-border transition-colors hover:border-retro-primary rounded-md'
-                  
-                >
-                  <EllipsisVertical size={13}/>
-                </button>
+                <ProfileFavoritePopover favoriteId={favoriteGame.id} onDelete={handleRemove}/>
               </div>
-              <p className='flex flex-wrap text-start text-xs mt-1 italic'>{favoriteGame.description}</p>
+              <p className='flex flex-wrap text-start text-xs mt-2 italic'>{favoriteGame.description}</p>
             </div>
           </div>
         ) : (
@@ -121,10 +152,9 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
               ? <PixelButton tone="neutral"
                 className='w-full cursor-pointer'
                 onClick={() => {
-                  setOpen(true)
+                  setOpen(true);
                   setMode("add");
-                }
-                }
+                }}
               >
                 + Add a Game
               </PixelButton>
@@ -146,7 +176,6 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
         isLoading={isLoading}
         submitFavoriteGame={handleSubmitFavoriteGame}
       />
-
     </PixelCard>
   )
 }

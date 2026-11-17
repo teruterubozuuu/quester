@@ -3,6 +3,7 @@ import ProfileActivities from "@/components/ProfileActivities";
 import ProfileFavoriteGame from "@/components/ProfileFavoriteGame";
 import ProfileHeader from "@/components/ProfileHeader";
 import ProfilePosts from "@/components/ProfilePosts";
+import { ProfileTabs } from "@/components/ProfileTabs";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
@@ -55,11 +56,14 @@ export default async function Profile({
       <header>
         <ProfileHeader user={profile} progress={Number(progressPercent)} isOwnProfile={isOwnProfile} />
       </header>
-      <div className="flex gap-3 py-3">
+      <div className="py-2 md:hidden sticky">
+        <ProfileTabs isOwnProfile={isOwnProfile} savedFavoriteGame={favoriteGame}/>
+      </div>
+      <div className="flex gap-3 md:py-3 pb-3">
         <aside className="flex-1/15 md:block hidden">
           <ProfileFavoriteGame isOwnProfile={isOwnProfile} savedFavoriteGame={favoriteGame}/>
         </aside>
-        <main className="flex-5"><ProfilePosts /></main>
+        <main className="hidden md:block flex-5"><ProfilePosts /></main>
         <aside className="flex-1/15 md:block hidden">
           <ProfileActivities />
         </aside>
