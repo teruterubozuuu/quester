@@ -7,6 +7,7 @@ import AddFavoriteGameModal from './AddFavoriteGameModal';
 import { GameDetails } from '@/utils/types/quest-page';
 import { FavoriteGame } from '@/utils/types/profile-page';
 import ProfileFavoritePopover from './ProfileFavoritePopover';
+import Image from 'next/image';
 
 
 export type ProfileFavoriteGameProps = {
@@ -132,11 +133,13 @@ export default function ProfileFavoriteGame({ isOwnProfile, savedFavoriteGame }:
     <PixelCard title='Favorite Game' icon={<PxlKitIcon icon={Star} size={20} />}>
       {favoriteGame
         ? (
-          <div className='flex flex-col items-cente justify-between'>
-            <img
+          <div className='flex flex-col items-center justify-between'>
+            <Image
               src={favoriteGame.cover}
               alt="Favorite Game"
-              className="rounded-md"
+              className="rounded-md w-full"
+              width={500}
+              height={500}
             />
             <div className='mt-3'>
               <div className='flex justify-between items-center'>

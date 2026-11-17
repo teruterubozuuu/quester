@@ -1,5 +1,6 @@
 "use client";
 import { PixelButton, PixelCard, PixelFileUpload, PixelModal, PixelScrollArea, PixelTypewriter, useToast } from '@pxlkit/ui-kit'
+import Image from 'next/image';
 import { Dispatch, SetStateAction, useState } from 'react';
 
 type QuestCheckProps = {
@@ -84,7 +85,7 @@ export default function QuestCheck({ open, setOpen, questId, questStatus, onQues
   It’s Quill, the Guild Receptionist, smiling at you mischievously.">
             <div className='flex flex-col gap-5'>
                 <div className='flex'>
-                    <img src="/GuildReceptionist-1000x1000.gif" alt="Quill" className='w-auto h-30' />
+                    <Image src="/GuildReceptionist-1000x1000.gif" alt="Quill" className='w-auto h-30' />
                     <PixelCard className='w-full'>
                         <div className='flex flex-col gap-3'>
                             <h1 className='font-pixel text-retro-text'>Quill</h1>

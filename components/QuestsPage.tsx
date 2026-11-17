@@ -12,6 +12,7 @@ import QuestDrawer from "./QuestDrawer";
 import { GameDetails, QuestData, SavedGame } from "@/utils/types/quest-page";
 import GameCardPopover from "./GameCardPopover";
 import FilterGamesTabs from "./FilterGamesTabs";
+import Image from "next/image";
 
 
 type QuestPageProps = {
@@ -241,11 +242,13 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
             >
               <PixelCard className="hover:border-retro-primary/30">
                 <div title={game.title} className="flex md:flex-col flex-row gap-3 text-retro-text hover:text-retro-primary ">
-                  <img
+                  <Image
                     src={game.cover}
                     alt={game.title}
                     className="md:h-full md:w-full h-20 w-20 rounded-md object-cover"
                     loading="eager"
+                    width={500}
+                    height={500}
                   />
 
                   <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">

@@ -52,22 +52,20 @@ export default async function Profile({
   const isOwnProfile = user && profile ? user.id === profile.id : false;
 
   return (
-    <div>
-      <header>
-        <ProfileHeader user={profile} progress={Number(progressPercent)} isOwnProfile={isOwnProfile} />
-      </header>
-      <div className="py-2 md:hidden sticky">
-        <ProfileTabs isOwnProfile={isOwnProfile} savedFavoriteGame={favoriteGame}/>
+    <div className="flex justify-center gap-3">
+      <div className="flex-1 flex flex-col gap-3 min-w-0 max-w-4xl">
+        <header>
+          <ProfileHeader user={profile} progress={Number(progressPercent)} isOwnProfile={isOwnProfile} />
+        </header>
+        <div className="py-2 md:hidden sticky">
+          <ProfileTabs isOwnProfile={isOwnProfile} savedFavoriteGame={favoriteGame}/>
+        </div>
+        <main className="hidden md:block"><ProfilePosts /></main>
       </div>
-      <div className="flex gap-3 md:py-3 pb-3">
-        <aside className="flex-1/15 md:block hidden">
+      <aside className="hidden w-72 flex-col gap-3 md:flex">
           <ProfileFavoriteGame isOwnProfile={isOwnProfile} savedFavoriteGame={favoriteGame}/>
-        </aside>
-        <main className="hidden md:block flex-5"><ProfilePosts /></main>
-        <aside className="flex-1/15 md:block hidden">
           <ProfileActivities />
-        </aside>
-      </div>
+      </aside>
     </div>
   )
 }
