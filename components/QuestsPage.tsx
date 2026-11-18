@@ -56,7 +56,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
   const fetchIGDBData = async (normalizedQuery: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/games", {
+      const res = await fetch("/api/igdb", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +109,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
       const formData = new FormData(e.currentTarget);
       const selectedStatus = formData.get("status");
 
-      const res = await fetch("/api/add-game", {
+      const res = await fetch("/api/games", {
         method: "POST",
         body: JSON.stringify({
           game: selectedSearchGame,
@@ -154,7 +154,7 @@ export default function QuestsPage({ gameData, questData }: QuestPageProps) {
 
   const handleDeleteGame = async (gameId: string) => {
     try {
-      const res = await fetch("/api/delete-game", {
+      const res = await fetch("/api/games", {
         method: "DELETE",
         body: JSON.stringify({ gameId: gameId })
       });

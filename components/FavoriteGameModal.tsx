@@ -3,36 +3,135 @@ import { FavoriteGame } from '@/utils/types/profile-page';
 import { GameDetails } from '@/utils/types/quest-page';
 import { AnimatedPxlKitIcon } from '@pxlkit/core';
 import { LoadingCircle } from '@pxlkit/feedback';
-import { PixelBadge, PixelBox, PixelButton, PixelInput, PixelModal, PixelScrollArea, PixelTextarea } from '@pxlkit/ui-kit'
-import React, { Dispatch, SetStateAction } from 'react'
+import { PixelBadge, PixelBox, PixelButton, PixelInput, PixelModal, PixelScrollArea, PixelTextarea, useToast } from '@pxlkit/ui-kit'
+import React, { Dispatch, SetStateAction, SubmitEvent, useEffect, useState } from 'react'
 
 type FavoriteGameProps = {
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
-    searchQuery: string;
-    setSearchQuery: Dispatch<SetStateAction<string>>;
-    selectedGame: GameDetails | null;
-    setSelectedGame: Dispatch<SetStateAction<GameDetails | null>>;
-    searchResults: GameDetails[];
-    setSearchResults: Dispatch<SetStateAction<GameDetails[]>>;
-    isLoading: boolean;
-    submitFavoriteGame: (
-        e: React.SubmitEvent<HTMLFormElement>,
-    ) => void | Promise<void>;
+    mode: "add" | "edit";
+    savedFavoriteGame: FavoriteGame | null;
+    setFavoriteGame: Dispatch<SetStateAction<FavoriteGame | null>>
 }
 
-export default function AddFavoriteGameModal({
+export default function FavoriteGameModal({
     open,
     setOpen,
-    searchQuery,
-    setSearchQuery,
-    selectedGame,
-    setSelectedGame,
-    searchResults,
-    setSearchResults,
-    isLoading,
-    submitFavoriteGame,
+    mode,
+    savedFavoriteGame,
+    setFavoriteGame
 }: FavoriteGameProps) {
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+    const [searchQuery, setSearchQuery] = useState(savedFavoriteGame?.title ?? "");
+    const [searchResults, setSearchResults] = useState<GameDetails[]>([]);
+    const [selectedGame, setSelectedGame] = useState<GameDetails | null>(null);
+
+    /**
+     * Fetches Game Data from IGDB
+     * @param normalizedQuery 
+     */
+    const fetchIGDB = async (normalizedQuery: string) => {
+        setIsLoading(true);
+        try {
+            const res = await fetch("/api/igdb", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ query: normalizedQuery })
+            })
+            if (!res.ok) {
+                throw new Error("Failed to fetch game data");
+            }
+
+            const igdbData: GameDetails[] = await res.json();
+
+            setSearchResults(igdbData);
+
+            // Automatically select the previously saved game
+            if (savedFavoriteGame) {
+                const existingGame = igdbData.find(
+                    game => game.name.toLowerCase() === savedFavoriteGame.title.toLowerCase()
+                );
+
+                if (existingGame) {
+                    setSelectedGame(existingGame);
+                    setSearchResults([]);
+                }
+            }
+
+            setIsLoading(false);
+        } catch (error) {
+            console.error("Failed to fetch game: ", error);
+            setIsLoading(false);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    /**
+     * Debounce query
+     */
+    useEffect(() => {
+        if (selectedGame) return;
+        const normalizedQuery = searchQuery.trim();
+        if (!normalizedQuery) {
+            setSearchResults([]);
+            return;
+        }
+        const timeout = setTimeout(() => {
+            void fetchIGDB(normalizedQuery);
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [searchQuery, selectedGame]);
+
+    /**
+     * Synchronize favorite game
+     */
+    useEffect(() => {
+        setFavoriteGame(savedFavoriteGame);
+    }, [savedFavoriteGame]);
+
+    /**
+     * Re-initialize state when modal opens
+     */
+    useEffect(() => {
+        if (!open) return;
+        setSearchQuery(savedFavoriteGame?.title ?? "");
+        setSelectedGame(null);
+        setSearchResults([]);
+    }, [open, savedFavoriteGame]);
+
+    /**
+     * Function for handling submitted forms
+     * @param e 
+     */
+    const handleSubmitFavoriteGame = async (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        try {
+            const formData = new FormData(e.currentTarget);
+            const description = formData.get("description");
+
+            const res = await fetch("/api/favorite-game", {
+                method: mode === "edit" ? "PATCH" : "POST",
+                body: JSON.stringify(mode === "edit" ? {game:selectedGame, favoriteId: savedFavoriteGame?.id, description} : { game: selectedGame, description })
+            });
+
+            if (!res.ok) {
+                throw new Error(mode === "edit" ? "Failed to update game data" : "Failed to add game data");
+            }
+
+            const newFavoriteGame: FavoriteGame = await res.json();
+            setFavoriteGame(newFavoriteGame);
+            setOpen(false);
+        } catch (error) {
+            console.error(mode === "edit" ? "Failed to update game data" : "Failed to add game as favorite", error);
+            toast.error(mode === "edit" ? "Failed to update game data" : "Failed to add game as favorite")
+        }
+    }
+
     return (
         <PixelModal
             open={open}
@@ -41,10 +140,10 @@ export default function AddFavoriteGameModal({
                 setSearchQuery("");
                 setSelectedGame(null);
             }}
-            title="Favorite Game"
+            title={mode === "add" ? "Favorite Game" : "Edit Favorite Game"}
             size='lg'
         >
-            <form onSubmit={submitFavoriteGame}>
+            <form onSubmit={handleSubmitFavoriteGame}>
                 <PixelScrollArea aria-label="Scrollable region" maxHeight={500} className='flex flex-col gap-2'>
                     <PixelInput
                         label="Title"
@@ -96,6 +195,7 @@ export default function AddFavoriteGameModal({
                         placeholder='Why is this game your favorite? :)'
                         name='description'
                         showCount={{ max: 160 }}
+                        defaultValue={mode === "edit" ? savedFavoriteGame?.description : ""}
                     />
 
                     {selectedGame && (
@@ -126,8 +226,6 @@ export default function AddFavoriteGameModal({
                 </PixelScrollArea>
                 <PixelButton type='submit' disabled={!selectedGame} className='w-full mt-3'>Submit</PixelButton>
             </form>
-
-
         </PixelModal>
     )
 }

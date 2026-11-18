@@ -75,7 +75,6 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
    */
   const handleQuestSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const questAPI = isEditing ? "edit-quest" : "add-quest";
 
     if (!game) {
       toast.error("Select a game before adding a quest");
@@ -92,7 +91,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
       if (status === "completed") {
         const result = QuestSchema.parse({ title, status, difficulty });
 
-        const res = await fetch("/api/add-quest", {
+        const res = await fetch("/api/quests", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -124,7 +123,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
 
       const result = QuestSchema.parse({ title, status, difficulty });
 
-      const res = await fetch(`/api/${questAPI}`, {
+      const res = await fetch('/api/quests', {
         method: isEditing ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +212,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
   const handleUpdateGameStatus = async (gameId: string, value: string) => {
     onGameStatusChange(gameId, value);
     try {
-      const res = await fetch("/api/update-game-status", {
+      const res = await fetch("/api/games", {
         method: "PATCH",
         body: JSON.stringify({ status: value, gameId: gameId })
       });
@@ -233,7 +232,7 @@ export default function QuestDrawer({ open, setOpen, game, quests, onGameStatusC
    */
   const handleQuestDelete = async (questId: string) => {
     try {
-      const res = await fetch("/api/delete-quest", {
+      const res = await fetch("/api/quests", {
         method: "DELETE",
         body: JSON.stringify({ questId: questId })
       });
